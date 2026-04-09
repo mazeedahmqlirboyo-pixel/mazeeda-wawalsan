@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { supabase } from './supabaseClient';
+import appLogo from './assets/logo.jpg';
 
 const formatWhatsAppNumber = (phone) => {
   if (!phone) return '';
@@ -75,9 +76,9 @@ function App() {
         {/* Header */}
         <div className="bg-mazeeda-blue text-white pt-10 pb-12 px-6 rounded-b-[2.5rem] relative shadow-md">
           <div className="flex flex-col items-center">
-            {/* Logo Placeholder */}
-            <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4 border-2 border-white/60 shadow-inner">
-              <span className="text-white text-xs font-bold tracking-widest uppercase">Logo</span>
+            {/* Logo */}
+            <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-4 border-2 border-white/60 shadow-inner overflow-hidden">
+              <img src={appLogo} alt="Logo MAZEEDA" className="w-full h-full object-cover bg-white" />
             </div>
             <h1 className="text-xl font-bold text-center leading-tight">
               Nomor WhatsApp<br />Wali Santri MAZEEDA
@@ -87,7 +88,7 @@ function App() {
 
         {/* Search Bar - Floating */}
         <div className="px-6 -mt-6 sticky top-4 z-10">
-          <div className="bg-white rounded-full shadow-lg flex items-center px-4 py-3 border border-gray-100">
+          <div className="bg-white rounded-2xl shadow-lg flex items-center px-4 py-3 border border-gray-100">
             <Search className="text-gray-400 w-5 h-5 mr-3" />
             <input 
               type="text" 
@@ -105,7 +106,7 @@ function App() {
             <div className="flex flex-col gap-4">
               {[1, 2, 3].map(i => (
                 <div key={i} className="animate-pulse bg-white border border-gray-100 p-5 rounded-2xl shadow-sm flex flex-col gap-3">
-                  <div className="w-24 h-6 bg-blue-100 rounded-full"></div>
+                  <div className="w-24 h-6 bg-blue-100 rounded-lg"></div>
                   <div className="h-5 bg-gray-200 rounded w-3/4"></div>
                   <div className="flex gap-2 mt-2">
                     <div className="h-10 bg-green-100 rounded-xl w-full"></div>
@@ -122,7 +123,7 @@ function App() {
               {results.map((siswi) => (
                 <div key={siswi.id} className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                   {/* Badge */}
-                  <span className="inline-block bg-blue-50 text-mazeeda-blue text-xs font-semibold px-3 py-1 rounded-full mb-3 border border-blue-100">
+                  <span className="inline-block bg-blue-50 text-mazeeda-blue text-xs font-semibold px-3 py-1 rounded-lg mb-3 border border-blue-100">
                     {siswi.bagian || 'Tanpa Bagian'}
                   </span>
                   
@@ -133,13 +134,25 @@ function App() {
                   
                   {/* Buttons */}
                   <div className="flex flex-col sm:flex-row gap-3 mt-2">
-                    <button 
-                      onClick={() => openWhatsApp(siswi.wa_utama)}
-                      className="flex-1 bg-mazeeda-blue hover:bg-mazeeda-navy text-white py-3 px-4 rounded-xl flex items-center justify-center font-medium transition-colors active:scale-95 shadow-sm shadow-blue-200"
-                    >
-                      <FaWhatsapp className="w-5 h-5 mr-2" />
-                      WA Utama
-                    </button>
+                    {siswi.wa_utama && String(siswi.wa_utama).trim() !== '' && String(siswi.wa_utama).trim().toLowerCase() !== 'null' && String(siswi.wa_utama).trim() !== '-' ? (
+                      <button 
+                        onClick={() => openWhatsApp(siswi.wa_utama)}
+                        className="flex-1 bg-mazeeda-blue hover:bg-mazeeda-navy text-white py-3 px-4 rounded-xl flex items-center justify-center font-medium transition-colors active:scale-95 shadow-sm shadow-blue-200"
+                      >
+                        <FaWhatsapp className="w-5 h-5 mr-2" />
+                        WA Utama
+                      </button>
+                    ) : (
+                      <button 
+                        disabled
+                        className="flex-1 bg-gray-100 text-gray-400 py-3 px-4 rounded-xl flex items-center justify-center font-medium cursor-not-allowed border border-gray-200"
+                      >
+                        <span className="w-5 h-5 mr-2 flex items-center justify-center">
+                          <div className="w-3 h-0.5 bg-gray-400 rounded-lg"></div>
+                        </span>
+                        Utama Kosong
+                      </button>
+                    )}
                     
                     {siswi.wa_tambahan && String(siswi.wa_tambahan).trim() !== '' && String(siswi.wa_tambahan).trim().toLowerCase() !== 'null' && String(siswi.wa_tambahan).trim() !== '-' ? (
                       <button 
@@ -166,7 +179,7 @@ function App() {
             </div>
           ) : hasSearched && query.trim() !== '' ? (
             <div className="text-center py-16 text-gray-500">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Search className="w-8 h-8 text-gray-400" />
               </div>
               <p className="font-medium text-gray-600">Tidak ada hasil ditemukan</p>
