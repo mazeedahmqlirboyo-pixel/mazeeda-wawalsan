@@ -24,6 +24,57 @@ const toTitleCase = (str) => {
   return str.toString().toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
 };
 
+const calculateAge = (dateString) => {
+  if (!dateString || typeof dateString !== 'string') return null;
+  
+  let birthDate;
+  
+  // Try to parse DD-MM-YYYY, DD/MM/YYYY, or DD.MM.YYYY
+  const indonesianDateMatch = dateString.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+  if (indonesianDateMatch) {
+    // DD-MM-YYYY
+    birthDate = new Date(`${indonesianDateMatch[3]}-${indonesianDateMatch[2]}-${indonesianDateMatch[1]}`);
+  } else {
+    // Fallback standard parse, and check for things like "12 Agustus 2005"
+    // For simplicity, handle standard string parse or if it's already in english format.
+    // If it is non-standard Indonesian month, JS Date might return NaN, but we can try our best.
+    const monthMap = {
+      'januari': 'Jan', 'februari': 'Feb', 'maret': 'Mar', 'april': 'Apr', 'mei': 'May', 'juni': 'Jun',
+      'juli': 'Jul', 'agustus': 'Aug', 'september': 'Sep', 'oktober': 'Oct', 'november': 'Nov', 'desember': 'Dec'
+    };
+    let engDateStr = dateString.toLowerCase();
+    Object.keys(monthMap).forEach(idMonth => {
+      engDateStr = engDateStr.replace(idMonth, monthMap[idMonth]);
+    });
+    birthDate = new Date(engDateStr);
+  }
+
+  if (isNaN(birthDate.getTime())) return null;
+
+  const today = new Date();
+  let years = today.getFullYear() - birthDate.getFullYear();
+  let months = today.getMonth() - birthDate.getMonth();
+  let days = today.getDate() - birthDate.getDate();
+
+  if (days < 0) {
+    months--;
+    const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+    days += prevMonth.getDate();
+  }
+
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  
+  let ageString = '';
+  if (years > 0) ageString += `${years} Thn `;
+  if (months > 0) ageString += `${months} Bln `;
+  if (days > 0) ageString += `${days} Hr`;
+  
+  return ageString.trim() || '0 Hr';
+};
+
 
 function App() {
   const [query, setQuery] = useState('');
@@ -144,7 +195,7 @@ function App() {
                     <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Nama Ibu</span> {siswi.nama_ibu ? toTitleCase(siswi.nama_ibu) : '-'}</div>
                     <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Daerah Santri</span> {siswi.daerah_santri ? toTitleCase(siswi.daerah_santri) : '-'}</div>
                     <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Tanggal Lahir</span> {siswi.tanggal_lahir ? toTitleCase(siswi.tanggal_lahir) : '-'}</div>
-                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Umur Siswi</span> {siswi.umur_siswi ? toTitleCase(siswi.umur_siswi) : '-'}</div>
+                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Umur Siswi</span> {calculateAge(siswi.tanggal_lahir) || (siswi.umur_siswi ? toTitleCase(siswi.umur_siswi) : '-')}</div>
                     <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Status</span> Anak ke-{siswi.anak_ke || '-'} dr {siswi.jumlah_saudara || '-'}</div>
                     <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Status Tahfiz</span> {siswi.status_tahfiz ? toTitleCase(siswi.status_tahfiz) : '-'}</div>
                     <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Domisili</span> {siswi.domisili ? toTitleCase(siswi.domisili) : '-'}</div>
