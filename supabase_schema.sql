@@ -26,3 +26,16 @@
             ('Fatimah Az Zahra', 'Kelas 2B', '+628111222333', NULL),
             ('Khadijah', 'Kelas 3C', '0812-9999-8888', ' 0819 7777 6666 '),
             ('Amina', 'Kelas 1A', '81244445555', '');
+
+        -- ========================================================
+        -- JALANKAN PERINTAH DI BAWAH INI UNTUK MENAMBAHKAN KOLOM BARU
+        -- COPY-PASTE KE SQL EDITOR DI SUPABASE
+        -- ========================================================
+        ALTER TABLE public.wawalsan 
+        ADD COLUMN IF NOT EXISTS daerah_santri VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS tanggal_lahir VARCHAR(50),
+        ADD COLUMN IF NOT EXISTS umur_siswi VARCHAR(20),
+        ADD COLUMN IF NOT EXISTS anak_ke VARCHAR(10),
+        ADD COLUMN IF NOT EXISTS jumlah_saudara VARCHAR(10),
+        ADD COLUMN IF NOT EXISTS status_tahfiz VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS domisili VARCHAR(255);

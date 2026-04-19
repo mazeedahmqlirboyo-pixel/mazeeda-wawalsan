@@ -19,6 +19,12 @@ const formatWhatsAppNumber = (phone) => {
   return cleanNumber;
 };
 
+const toTitleCase = (str) => {
+  if (!str) return '';
+  return str.toString().toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+};
+
+
 function App() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -39,7 +45,7 @@ function App() {
         
         try {
           const { data, error } = await supabase
-            .from('wawalsan')
+            .from('informasimazeeda')
             .select('*')
             .ilike('nama_siswi', `%${query.trim()}%`)
             .limit(20);
@@ -80,8 +86,8 @@ function App() {
             <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-4 border-2 border-white/60 shadow-inner overflow-hidden">
               <img src={appLogo} alt="Logo MAZEEDA" className="w-full h-full object-cover bg-white" />
             </div>
-            <h1 className="text-xl font-bold text-center leading-tight">
-              Nomor WhatsApp<br />Wali Santri MAZEEDA
+            <h1 className="text-xl font-bold text-center leading-tight mt-2">
+              INFORMASI MAZEEDA
             </h1>
           </div>
         </div>
@@ -124,13 +130,25 @@ function App() {
                 <div key={siswi.id} className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                   {/* Badge */}
                   <span className="inline-block bg-blue-50 text-mazeeda-blue text-xs font-semibold px-3 py-1 rounded-lg mb-3 border border-blue-100">
-                    {siswi.bagian || 'Tanpa Bagian'}
+                    {siswi.bagian ? toTitleCase(siswi.bagian) : 'Tanpa Bagian'}
                   </span>
                   
                   {/* Name */}
                   <h2 className="text-lg font-bold text-gray-800 mb-4 leading-tight">
-                    {siswi.nama_siswi}
+                    {toTitleCase(siswi.nama_siswi)}
                   </h2>
+                  
+                  {/* Additional Info */}
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-3 text-sm text-gray-700 mb-5 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Nama Ayah</span> {siswi.nama_ayah ? toTitleCase(siswi.nama_ayah) : '-'}</div>
+                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Nama Ibu</span> {siswi.nama_ibu ? toTitleCase(siswi.nama_ibu) : '-'}</div>
+                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Daerah Santri</span> {siswi.daerah_santri ? toTitleCase(siswi.daerah_santri) : '-'}</div>
+                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Tanggal Lahir</span> {siswi.tanggal_lahir ? toTitleCase(siswi.tanggal_lahir) : '-'}</div>
+                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Umur Siswi</span> {siswi.umur_siswi ? toTitleCase(siswi.umur_siswi) : '-'}</div>
+                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Status</span> Anak ke-{siswi.anak_ke || '-'} dr {siswi.jumlah_saudara || '-'}</div>
+                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Status Tahfiz</span> {siswi.status_tahfiz ? toTitleCase(siswi.status_tahfiz) : '-'}</div>
+                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Domisili</span> {siswi.domisili ? toTitleCase(siswi.domisili) : '-'}</div>
+                  </div>
                   
                   {/* Buttons */}
                   <div className="flex flex-col sm:flex-row gap-3 mt-2">
