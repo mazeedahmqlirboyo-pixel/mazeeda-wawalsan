@@ -1,0 +1,16 @@
+{
+  "name": "INFORMASI MAZEEDA",
+  "short_name": "INFORMASI MAZEEDA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#f9fafb",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192 512x512 any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
