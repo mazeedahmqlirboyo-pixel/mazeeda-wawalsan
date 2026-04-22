@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { supabase } from './supabaseClient';
-import appLogo from './assets/logo.jpg';
+import appLogo from './assets/logo.png';
 
 const formatWhatsAppNumber = (phone) => {
   if (!phone) return '';
