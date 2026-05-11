@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Upload, Trash2, X, Lock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Search, Upload, Trash2, X, Lock, CheckCircle, XCircle, AlertTriangle, Download } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { supabase } from './supabaseClient';
 import appLogo from './assets/logo.png';
@@ -80,6 +80,28 @@ function App() {
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+
+  // PWA Install States
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallPrompt(true);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
+    setShowInstallPrompt(false);
+  };
 
   // Admin States
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -466,8 +488,16 @@ function App() {
                   
                   {/* Additional Info */}
                   <div className="grid grid-cols-2 gap-x-2 gap-y-3 text-sm text-gray-700 mb-5 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Nama Ayah</span> {siswi.nama_ayah ? toTitleCase(siswi.nama_ayah) : '-'}</div>
-                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Nama Ibu</span> {siswi.nama_ibu ? toTitleCase(siswi.nama_ibu) : '-'}</div>
+                    <div>
+                      <span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Nama Ayah</span> 
+                      {siswi.nama_ayah ? toTitleCase(siswi.nama_ayah) : '-'}
+                      {siswi.status_ayah && String(siswi.status_ayah).trim().toLowerCase() !== 'hidup' && String(siswi.status_ayah).trim() !== '-' && <span className="text-gray-500 text-xs ml-1 font-medium">(Alm.)</span>}
+                    </div>
+                    <div>
+                      <span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Nama Ibu</span> 
+                      {siswi.nama_ibu ? toTitleCase(siswi.nama_ibu) : '-'}
+                      {siswi.status_ibu && String(siswi.status_ibu).trim().toLowerCase() !== 'hidup' && String(siswi.status_ibu).trim() !== '-' && <span className="text-gray-500 text-xs ml-1 font-medium">(Almh.)</span>}
+                    </div>
                     <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Daerah Santri</span> {siswi.daerah_santri ? toTitleCase(siswi.daerah_santri) : '-'}</div>
                     <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Tanggal Lahir</span> {siswi.tanggal_lahir ? toTitleCase(siswi.tanggal_lahir) : '-'}</div>
                     <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Umur Siswi</span> {calculateAge(siswi.tanggal_lahir) || (siswi.umur_siswi ? toTitleCase(siswi.umur_siswi) : '-')}</div>
@@ -486,7 +516,7 @@ function App() {
                         className="flex-1 bg-mazeeda-blue hover:bg-mazeeda-navy text-white py-3 px-4 rounded-xl flex items-center justify-center font-medium transition-colors active:scale-95 shadow-sm shadow-blue-200"
                       >
                         <FaWhatsapp className="w-5 h-5 mr-2" />
-                        WA Utama
+                        WA Ayah
                       </button>
                     ) : (
                       <button 
@@ -496,7 +526,7 @@ function App() {
                         <span className="w-5 h-5 mr-2 flex items-center justify-center">
                           <div className="w-3 h-0.5 bg-gray-400 rounded-lg"></div>
                         </span>
-                        Utama Kosong
+                        WA Ayah Kosong
                       </button>
                     )}
                     
@@ -506,7 +536,7 @@ function App() {
                         className="flex-1 bg-mazeeda-blue hover:bg-mazeeda-navy text-white py-3 px-4 rounded-xl flex items-center justify-center font-medium transition-colors active:scale-95 shadow-sm shadow-blue-200"
                       >
                         <FaWhatsapp className="w-5 h-5 mr-2" />
-                        WA Tambahan
+                        WA Ibu
                       </button>
                     ) : (
                       <button 
@@ -516,7 +546,7 @@ function App() {
                         <span className="w-5 h-5 mr-2 flex items-center justify-center">
                           <div className="w-3 h-0.5 bg-gray-400 rounded-full"></div>
                         </span>
-                        Kosong
+                        WA Ibu Kosong
                       </button>
                     )}
                   </div>
@@ -662,6 +692,38 @@ function App() {
                 Tutup
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Install App Banner */}
+      {showInstallPrompt && (
+        <div className="fixed bottom-4 left-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-5 duration-500">
+          <div className="max-w-md mx-auto bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-blue-100 p-4 flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-white rounded-xl shadow-inner border border-gray-100 flex items-center justify-center mr-3 overflow-hidden p-1">
+                 <img src={appLogo} alt="Logo" className="w-full h-full object-contain" />
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-800 text-sm leading-tight">Install Mazeeda</h4>
+                <p className="text-xs text-gray-500 mt-0.5">Akses lebih cepat & mudah</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 ml-2">
+               <button 
+                 onClick={() => setShowInstallPrompt(false)}
+                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+               >
+                 <X className="w-4 h-4" />
+               </button>
+               <button 
+                 onClick={handleInstallClick}
+                 className="bg-mazeeda-blue hover:bg-mazeeda-navy text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-transform active:scale-95 shadow-sm whitespace-nowrap flex items-center"
+               >
+                 <Download className="w-3 h-3 mr-1.5" />
+                 Install
+               </button>
+            </div>
           </div>
         </div>
       )}
