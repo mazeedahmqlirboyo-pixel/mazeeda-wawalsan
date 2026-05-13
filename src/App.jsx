@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Upload, Trash2, X, Lock, CheckCircle, XCircle, AlertTriangle, Download } from 'lucide-react';
+import { Search, Upload, Trash2, X, Lock, CheckCircle, XCircle, AlertTriangle, Download, MapPin, Calendar, Users, Home, BookOpen, Map, User, Heart } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { supabase } from './supabaseClient';
 import appLogo from './assets/logo.png';
@@ -147,21 +147,30 @@ function App() {
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       async function searchSiswi() {
-        if (!query.trim()) {
+        // Jika query kosong dan tidak ada filter aktif
+        if (!query.trim() && !hasSearched) {
           setResults([]);
-          setHasSearched(false);
           return;
+        }
+
+        if (!query.trim()) {
+           // Jika query kosong karena dihapus, reset hasil
+           setResults([]);
+           setHasSearched(false);
+           return;
         }
 
         setIsLoading(true);
         setHasSearched(true);
         
         try {
+          // Smart Search: Mencari di beberapa kolom sekaligus
+          const searchTerm = `%${query.trim()}%`;
           const { data, error } = await supabase
             .from('informasimazeeda')
             .select('*')
-            .ilike('nama_siswi', `%${query.trim()}%`)
-            .limit(20);
+            .or(`nama_siswi.ilike.${searchTerm},daerah_santri.ilike.${searchTerm},kamar_siswi.ilike.${searchTerm},domisili.ilike.${searchTerm}`)
+            .limit(30);
             
           if (error) {
             console.error("Error fetching data:", error);
@@ -387,15 +396,25 @@ function App() {
 
         {/* Search Bar - Floating */}
         <div className="px-6 -mt-6 sticky top-4 z-10">
-          <div className="bg-white rounded-2xl shadow-lg flex items-center px-4 py-3 border border-gray-100">
-            <Search className="text-gray-400 w-5 h-5 mr-3" />
-            <input 
-              type="text" 
-              placeholder="Cari nama siswi..." 
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="flex-1 outline-none text-gray-700 bg-transparent placeholder-gray-400"
-            />
+          <div className="bg-white rounded-2xl shadow-lg flex flex-col border border-gray-100 overflow-hidden">
+            <div className="flex items-center px-4 py-3 relative">
+              <Search className="text-gray-400 w-5 h-5 mr-3 flex-shrink-0" />
+              <input 
+                type="text" 
+                placeholder="Cari nama, asal, domisili..." 
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="flex-1 outline-none text-gray-700 bg-transparent placeholder-gray-400 min-w-0"
+              />
+              {query && (
+                <button 
+                  onClick={() => setQuery('')}
+                  className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full transition-colors flex-shrink-0 ml-2"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -475,37 +494,122 @@ function App() {
                 <span>Ditemukan {results.length} hasil</span>
               </div>
               {results.map((siswi) => (
-                <div key={siswi.id} className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  {/* Badge */}
-                  <span className="inline-block bg-blue-50 text-mazeeda-blue text-xs font-semibold px-3 py-1 rounded-lg mb-3 border border-blue-100">
-                    {siswi.bagian ? toTitleCase(siswi.bagian) : 'Tanpa Bagian'}
-                  </span>
-                  
-                  {/* Name */}
-                  <h2 className="text-lg font-bold text-gray-800 mb-4 leading-tight">
-                    {toTitleCase(siswi.nama_siswi)}
-                  </h2>
+                <div key={siswi.id} className="bg-white border border-gray-100 p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300">
+                  {/* Header Card: Avatar, Badge, & Name */}
+                  <div className="flex items-center gap-4 mb-5">
+                    {/* Foto / Avatar Initial */}
+                    <div className="w-16 h-16 rounded-full bg-blue-50 border-2 border-white shadow-sm overflow-hidden flex-shrink-0 flex items-center justify-center ring-2 ring-gray-50">
+                      {siswi.foto_url && siswi.foto_url.trim() !== '' && siswi.foto_url !== '-' ? (
+                        <img 
+                          src={siswi.foto_url} 
+                          alt={`Foto ${siswi.nama_siswi}`} 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => {
+                            e.target.onerror = null; 
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <span className="text-2xl font-bold text-mazeeda-blue" style={{ display: (siswi.foto_url && siswi.foto_url.trim() !== '' && siswi.foto_url !== '-') ? 'none' : 'flex' }}>
+                        {siswi.nama_siswi ? siswi.nama_siswi.charAt(0).toUpperCase() : '?'}
+                      </span>
+                    </div>
+                    
+                    {/* Info Text */}
+                    <div className="flex flex-col">
+                      <div className="self-start">
+                        <span className="inline-block bg-blue-50 text-mazeeda-blue text-[10px] font-bold px-2 py-0.5 rounded-md mb-1.5 border border-blue-100 uppercase tracking-wider">
+                          {siswi.bagian ? toTitleCase(siswi.bagian) : 'Tanpa Bagian'}
+                        </span>
+                      </div>
+                      <h2 className="text-lg font-bold text-gray-800 leading-tight">
+                        {toTitleCase(siswi.nama_siswi)}
+                      </h2>
+                    </div>
+                  </div>
                   
                   {/* Additional Info */}
-                  <div className="grid grid-cols-2 gap-x-2 gap-y-3 text-sm text-gray-700 mb-5 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                    <div>
-                      <span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Nama Ayah</span> 
-                      {siswi.nama_ayah ? toTitleCase(siswi.nama_ayah) : '-'}
-                      {siswi.status_ayah && String(siswi.status_ayah).trim().toLowerCase() !== 'hidup' && String(siswi.status_ayah).trim() !== '-' && <span className="text-gray-500 text-xs ml-1 font-medium">(Alm.)</span>}
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-4 text-sm text-gray-700 mb-6 bg-gradient-to-br from-gray-50 to-white p-5 rounded-2xl border border-gray-100 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
+                    <div className="flex gap-2.5">
+                      <div className="mt-0.5"><User className="w-4 h-4 text-blue-400" /></div>
+                      <div>
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Nama Ayah</span> 
+                        <span className="font-medium text-gray-800">{siswi.nama_ayah ? toTitleCase(siswi.nama_ayah) : '-'}</span>
+                        {siswi.status_ayah && String(siswi.status_ayah).trim().toLowerCase() !== 'hidup' && String(siswi.status_ayah).trim() !== '-' && <span className="text-gray-400 text-xs ml-1 italic">(Alm.)</span>}
+                      </div>
                     </div>
-                    <div>
-                      <span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Nama Ibu</span> 
-                      {siswi.nama_ibu ? toTitleCase(siswi.nama_ibu) : '-'}
-                      {siswi.status_ibu && String(siswi.status_ibu).trim().toLowerCase() !== 'hidup' && String(siswi.status_ibu).trim() !== '-' && <span className="text-gray-500 text-xs ml-1 font-medium">(Almh.)</span>}
+                    <div className="flex gap-2.5">
+                      <div className="mt-0.5"><Heart className="w-4 h-4 text-pink-400" /></div>
+                      <div>
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Nama Ibu</span> 
+                        <span className="font-medium text-gray-800">{siswi.nama_ibu ? toTitleCase(siswi.nama_ibu) : '-'}</span>
+                        {siswi.status_ibu && String(siswi.status_ibu).trim().toLowerCase() !== 'hidup' && String(siswi.status_ibu).trim() !== '-' && <span className="text-gray-400 text-xs ml-1 italic">(Almh.)</span>}
+                      </div>
                     </div>
-                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Daerah Santri</span> {siswi.daerah_santri ? toTitleCase(siswi.daerah_santri) : '-'}</div>
-                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Tanggal Lahir</span> {siswi.tanggal_lahir ? toTitleCase(siswi.tanggal_lahir) : '-'}</div>
-                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Umur Siswi</span> {calculateAge(siswi.tanggal_lahir) || (siswi.umur_siswi ? toTitleCase(siswi.umur_siswi) : '-')}</div>
-                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Keluarga</span> Anak ke-{siswi.anak_ke || '-'} dr {siswi.jumlah_saudara || '-'}</div>
-                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Kamar</span> {siswi.kamar_siswi ? toTitleCase(siswi.kamar_siswi) : '-'}</div>
-                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Status Siswi</span> {siswi.status_siswi ? toTitleCase(siswi.status_siswi) : '-'}</div>
-                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Status Tahfiz</span> {siswi.status_tahfiz ? toTitleCase(siswi.status_tahfiz) : '-'}</div>
-                    <div><span className="font-semibold block text-xs text-gray-500 uppercase tracking-wider mb-0.5">Domisili</span> {siswi.domisili ? toTitleCase(siswi.domisili) : '-'}</div>
+                    <div className="flex gap-2.5">
+                      <div className="mt-0.5"><Map className="w-4 h-4 text-emerald-400" /></div>
+                      <div>
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Daerah Santri</span> 
+                        <span className="font-medium text-gray-800">{siswi.daerah_santri ? toTitleCase(siswi.daerah_santri) : '-'}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <div className="mt-0.5"><Calendar className="w-4 h-4 text-amber-400" /></div>
+                      <div>
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Tanggal Lahir</span> 
+                        <span className="font-medium text-gray-800">{siswi.tanggal_lahir ? toTitleCase(siswi.tanggal_lahir) : '-'}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <div className="mt-0.5"><User className="w-4 h-4 text-indigo-400" /></div>
+                      <div>
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Umur Siswi</span> 
+                        <span className="font-medium text-gray-800">{calculateAge(siswi.tanggal_lahir) || (siswi.umur_siswi ? toTitleCase(siswi.umur_siswi) : '-')}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <div className="mt-0.5"><Users className="w-4 h-4 text-orange-400" /></div>
+                      <div>
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Keluarga</span> 
+                        <span className="font-medium text-gray-800">Anak ke-{siswi.anak_ke || '-'} dr {siswi.jumlah_saudara || '-'}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <div className="mt-0.5"><Home className="w-4 h-4 text-teal-400" /></div>
+                      <div>
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Kamar</span> 
+                        <span className="font-medium text-gray-800">{siswi.kamar_siswi ? toTitleCase(siswi.kamar_siswi) : '-'}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <div className="mt-0.5"><CheckCircle className="w-4 h-4 text-green-500" /></div>
+                      <div>
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Status Siswi</span> 
+                        <span className="font-medium text-gray-800">{siswi.status_siswi ? toTitleCase(siswi.status_siswi) : '-'}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <div className="mt-0.5"><BookOpen className="w-4 h-4 text-purple-400" /></div>
+                      <div>
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Status Tahfiz</span> 
+                        <span className="font-medium text-gray-800">{siswi.status_tahfiz ? toTitleCase(siswi.status_tahfiz) : '-'}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <div className="mt-0.5"><MapPin className="w-4 h-4 text-red-400" /></div>
+                      <div>
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Domisili</span> 
+                        <span className="font-medium text-gray-800">{siswi.domisili ? toTitleCase(siswi.domisili) : '-'}</span>
+                      </div>
+                    </div>
+                    <div className="col-span-2 flex gap-2.5 mt-1 pt-3 border-t border-gray-100">
+                      <div className="mt-0.5"><MapPin className="w-4 h-4 text-gray-400" /></div>
+                      <div>
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Alamat Lengkap</span> 
+                        <span className="font-medium text-gray-800 leading-snug block uppercase">{siswi.alamat_lengkap ? siswi.alamat_lengkap : '-'}</span>
+                      </div>
+                    </div>
                   </div>
                   
                   {/* Buttons */}
@@ -513,7 +617,7 @@ function App() {
                     {siswi.wa_utama && String(siswi.wa_utama).trim() !== '' && String(siswi.wa_utama).trim().toLowerCase() !== 'null' && String(siswi.wa_utama).trim() !== '-' ? (
                       <button 
                         onClick={() => openWhatsApp(siswi.wa_utama)}
-                        className="flex-1 bg-mazeeda-blue hover:bg-mazeeda-navy text-white py-3 px-4 rounded-xl flex items-center justify-center font-medium transition-colors active:scale-95 shadow-sm shadow-blue-200"
+                        className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3.5 px-4 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 shadow-md shadow-green-200/50 hover:shadow-lg hover:shadow-green-300/50"
                       >
                         <FaWhatsapp className="w-5 h-5 mr-2" />
                         WA Ayah
@@ -521,10 +625,10 @@ function App() {
                     ) : (
                       <button 
                         disabled
-                        className="flex-1 bg-gray-100 text-gray-400 py-3 px-4 rounded-xl flex items-center justify-center font-medium cursor-not-allowed border border-gray-200"
+                        className="flex-1 bg-gray-50 text-gray-400 py-3.5 px-4 rounded-xl flex items-center justify-center font-medium cursor-not-allowed border border-gray-200/60"
                       >
                         <span className="w-5 h-5 mr-2 flex items-center justify-center">
-                          <div className="w-3 h-0.5 bg-gray-400 rounded-lg"></div>
+                          <div className="w-3 h-0.5 bg-gray-300 rounded-lg"></div>
                         </span>
                         WA Ayah Kosong
                       </button>
@@ -533,7 +637,7 @@ function App() {
                     {siswi.wa_tambahan && String(siswi.wa_tambahan).trim() !== '' && String(siswi.wa_tambahan).trim().toLowerCase() !== 'null' && String(siswi.wa_tambahan).trim() !== '-' ? (
                       <button 
                         onClick={() => openWhatsApp(siswi.wa_tambahan)}
-                        className="flex-1 bg-mazeeda-blue hover:bg-mazeeda-navy text-white py-3 px-4 rounded-xl flex items-center justify-center font-medium transition-colors active:scale-95 shadow-sm shadow-blue-200"
+                        className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3.5 px-4 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 shadow-md shadow-green-200/50 hover:shadow-lg hover:shadow-green-300/50"
                       >
                         <FaWhatsapp className="w-5 h-5 mr-2" />
                         WA Ibu
@@ -541,10 +645,10 @@ function App() {
                     ) : (
                       <button 
                         disabled
-                        className="flex-1 bg-gray-100 text-gray-400 py-3 px-4 rounded-xl flex items-center justify-center font-medium cursor-not-allowed border border-gray-200"
+                        className="flex-1 bg-gray-50 text-gray-400 py-3.5 px-4 rounded-xl flex items-center justify-center font-medium cursor-not-allowed border border-gray-200/60"
                       >
                         <span className="w-5 h-5 mr-2 flex items-center justify-center">
-                          <div className="w-3 h-0.5 bg-gray-400 rounded-full"></div>
+                          <div className="w-3 h-0.5 bg-gray-300 rounded-full"></div>
                         </span>
                         WA Ibu Kosong
                       </button>

@@ -38,4 +38,6 @@
         ADD COLUMN IF NOT EXISTS anak_ke VARCHAR(10),
         ADD COLUMN IF NOT EXISTS jumlah_saudara VARCHAR(10),
         ADD COLUMN IF NOT EXISTS status_tahfiz VARCHAR(100),
-        ADD COLUMN IF NOT EXISTS domisili VARCHAR(255);
+        ADD COLUMN IF NOT EXISTS domisili VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS alamat_lengkap TEXT,
+        ADD COLUMN IF NOT EXISTS foto_url TEXT;
