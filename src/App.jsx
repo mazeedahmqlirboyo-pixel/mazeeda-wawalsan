@@ -22,7 +22,12 @@ const formatWhatsAppNumber = (phone) => {
 
 const toTitleCase = (str) => {
   if (!str) return '';
-  return str.toString().toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+  return str.toString().toLowerCase().replace(/(^|[^\w])(\w)/g, (match, p1, p2, offset, string) => {
+    if (p1 === "'" && offset > 0 && /\w/.test(string[offset - 1])) {
+      return match;
+    }
+    return p1 + p2.toUpperCase();
+  });
 };
 
 const calculateAge = (dateString) => {
