@@ -80,6 +80,18 @@ const calculateAge = (dateString) => {
 };
 
 
+const formatImageUrl = (url) => {
+  if (!url) return '';
+  let str = String(url).trim();
+  // Parse Google Drive links (handles both /d/ID and ?id=ID formats)
+  const driveMatch = str.match(/\/(?:d|file\/d)\/([a-zA-Z0-9_-]+)/i) || str.match(/[?&]id=([a-zA-Z0-9_-]+)/i);
+  if (driveMatch && driveMatch[1]) {
+    // Gunakan lh3.googleusercontent.com agar terhindar dari blokir CORS/CORP Google Drive
+    return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
+  }
+  return str;
+};
+
 function App() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -147,6 +159,25 @@ function App() {
 
   useEffect(() => {
     fetchStats();
+    
+    // Check initial auth session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setIsAdmin(true);
+      }
+    });
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+        setShowAdminPanel(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -226,16 +257,23 @@ function App() {
     }
   };
 
-  const handleAdminLogin = (e) => {
+  const handleAdminLogin = async (e) => {
     e.preventDefault();
-    if (passwordInput === 'cinapuyeng') {
+    setLoginError('');
+    
+    // Login menggunakan Supabase Auth dengan email yang sudah diset
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: 'admin@mazeeda.com',
+      password: passwordInput,
+    });
+
+    if (error) {
+      setLoginError('Password salah atau user tidak ditemukan!');
+    } else {
       setIsAdmin(true);
       setShowLoginModal(false);
       setShowAdminPanel(true);
       setPasswordInput('');
-      setLoginError('');
-    } else {
-      setLoginError('Password salah!');
     }
   };
 
@@ -324,7 +362,9 @@ function App() {
             const cleanRow = {};
             for (let key in row) {
               if (key && key.trim() !== '') {
-                cleanRow[key.trim()] = row[key];
+                // Normalize keys to lowercase to match Supabase schema (e.g., Foto_url -> foto_url)
+                const normalizedKey = key.trim().toLowerCase();
+                cleanRow[normalizedKey] = row[key];
               }
             }
             // hapus id jika ada di CSV agar supabase membuat auto increment baru
@@ -433,6 +473,14 @@ function App() {
               >
                 <X className="w-5 h-5" />
               </button>
+              <button 
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                }}
+                className="absolute top-3 right-10 text-xs font-bold text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 px-2 py-1 rounded-md transition-colors"
+              >
+                Logout
+              </button>
               <h3 className="font-bold text-mazeeda-blue mb-3 flex items-center">
                 <Lock className="w-4 h-4 mr-2" /> Panel Admin
               </h3>
@@ -506,13 +554,14 @@ function App() {
                     <div className="w-16 h-16 rounded-full bg-blue-50 border-2 border-white shadow-sm overflow-hidden flex-shrink-0 flex items-center justify-center ring-2 ring-gray-50">
                       {siswi.foto_url && siswi.foto_url.trim() !== '' && siswi.foto_url !== '-' ? (
                         <img 
-                          src={siswi.foto_url} 
+                          src={formatImageUrl(siswi.foto_url)} 
                           alt={`Foto ${siswi.nama_siswi}`} 
                           className="w-full h-full object-cover" 
+                          referrerPolicy="no-referrer"
                           onError={(e) => {
                             e.target.onerror = null; 
                             e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
+                            if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
                           }}
                         />
                       ) : null}
