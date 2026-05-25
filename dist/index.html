@@ -2,13 +2,23 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/png" href="./logo.png" />
+    <link rel="apple-touch-icon" href="./logo.png" />
+    <link rel="manifest" href="./manifest.json" />
+    <meta name="theme-color" content="#f9fafb" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Pengecekan WA Wali Santri MAZEEDA</title>
-    <script type="module" crossorigin src="/assets/index-B_zVbNYV.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-C25eKA1d.css">
+    <title>INFORMASI MAZEEDA</title>
+    <script type="module" crossorigin src="/assets/index-DzK6fLIQ.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CchprRYs.css">
   </head>
   <body class="bg-gray-50 text-gray-800">
     <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed', err));
+        });
+      }
+    </script>
   </body>
 </html>

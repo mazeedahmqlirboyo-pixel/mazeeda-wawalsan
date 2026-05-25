@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Upload, Trash2, X, Lock, CheckCircle, XCircle, AlertTriangle, Download, MapPin, Calendar, Users, Home, BookOpen, Map, User, Heart } from 'lucide-react';
+import { Search, Upload, Trash2, X, Lock, CheckCircle, XCircle, AlertTriangle, Download, MapPin, Calendar, Users, Home, BookOpen, Map, User, Heart, Eye, EyeOff } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { supabase } from './supabaseClient';
 import appLogo from './assets/logo.png';
@@ -79,6 +79,20 @@ const calculateAge = (dateString) => {
   return ageString.trim() || '0 Hr';
 };
 
+const formatAgeDisplay = (siswi, isUnlocked) => {
+  if (!siswi) return '-';
+  const rawAge = calculateAge(siswi.tanggal_lahir) || siswi.umur_siswi;
+  if (!rawAge) return '-';
+  
+  const displayAge = toTitleCase(rawAge);
+  if (isUnlocked) return displayAge;
+  
+  return displayAge
+    .replace(/\b\d+\b(?=\s*(bln|bulan|Bln|Bulan))/gi, '**')
+    .replace(/\b\d+\b(?=\s*(hr|hari|Hr|Hari))/gi, '**');
+};
+
+
 
 const formatImageUrl = (url) => {
   if (!url) return '';
@@ -127,6 +141,12 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   
+  // Secret Fields Visibility States
+  const [isSecretUnlocked, setIsSecretUnlocked] = useState(false);
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [unlockPasswordInput, setUnlockPasswordInput] = useState('');
+  const [unlockError, setUnlockError] = useState('');
+  
   const [isUploading, setIsUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -174,6 +194,7 @@ function App() {
       } else {
         setIsAdmin(false);
         setShowAdminPanel(false);
+        setIsSecretUnlocked(false);
       }
     });
 
@@ -274,6 +295,37 @@ function App() {
       setShowLoginModal(false);
       setShowAdminPanel(true);
       setPasswordInput('');
+    }
+  };
+
+  const handleUnlockSecret = async (e) => {
+    e.preventDefault();
+    setUnlockError('');
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: 'admin@mazeeda.com',
+      password: unlockPasswordInput,
+    });
+
+    if (error) {
+      setUnlockError('Password salah!');
+    } else {
+      setIsSecretUnlocked(true);
+      setIsAdmin(true);
+      setShowUnlockModal(false);
+      setUnlockPasswordInput('');
+    }
+  };
+
+  const toggleSecretVisibility = () => {
+    if (isSecretUnlocked) {
+      setIsSecretUnlocked(false);
+    } else {
+      if (isAdmin) {
+        setIsSecretUnlocked(true);
+      } else {
+        setShowUnlockModal(true);
+      }
     }
   };
 
@@ -597,8 +649,21 @@ function App() {
                       <div className="mt-0.5"><Heart className="w-4 h-4 text-pink-400" /></div>
                       <div>
                         <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Nama Ibu</span> 
-                        <span className="font-medium text-gray-800">{siswi.nama_ibu ? toTitleCase(siswi.nama_ibu) : '-'}</span>
-                        {siswi.status_ibu && String(siswi.status_ibu).trim().toLowerCase() !== 'hidup' && String(siswi.status_ibu).trim() !== '-' && <span className="text-gray-400 text-xs ml-1 italic">(Almh.)</span>}
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium text-gray-800">
+                            {isSecretUnlocked ? (siswi.nama_ibu ? toTitleCase(siswi.nama_ibu) : '-') : '••••••'}
+                          </span>
+                          {siswi.status_ibu && String(siswi.status_ibu).trim().toLowerCase() !== 'hidup' && String(siswi.status_ibu).trim() !== '-' && isSecretUnlocked && (
+                            <span className="text-gray-400 text-xs ml-0.5 italic">(Almh.)</span>
+                          )}
+                          <button 
+                            onClick={toggleSecretVisibility}
+                            className="text-gray-400 hover:text-gray-600 transition-colors p-0.5"
+                            title={isSecretUnlocked ? "Sembunyikan" : "Tampilkan"}
+                          >
+                            {isSecretUnlocked ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2.5">
@@ -612,14 +677,36 @@ function App() {
                       <div className="mt-0.5"><Calendar className="w-4 h-4 text-amber-400" /></div>
                       <div>
                         <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Tanggal Lahir</span> 
-                        <span className="font-medium text-gray-800">{siswi.tanggal_lahir ? toTitleCase(siswi.tanggal_lahir) : '-'}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium text-gray-800">
+                            {isSecretUnlocked ? (siswi.tanggal_lahir ? toTitleCase(siswi.tanggal_lahir) : '-') : '••••••'}
+                          </span>
+                          <button 
+                            onClick={toggleSecretVisibility}
+                            className="text-gray-400 hover:text-gray-600 transition-colors p-0.5"
+                            title={isSecretUnlocked ? "Sembunyikan" : "Tampilkan"}
+                          >
+                            {isSecretUnlocked ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2.5">
                       <div className="mt-0.5"><User className="w-4 h-4 text-indigo-400" /></div>
                       <div>
                         <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Umur Siswi</span> 
-                        <span className="font-medium text-gray-800">{calculateAge(siswi.tanggal_lahir) || (siswi.umur_siswi ? toTitleCase(siswi.umur_siswi) : '-')}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium text-gray-800">
+                            {formatAgeDisplay(siswi, isSecretUnlocked)}
+                          </span>
+                          <button 
+                            onClick={toggleSecretVisibility}
+                            className="text-gray-400 hover:text-gray-600 transition-colors p-0.5"
+                            title={isSecretUnlocked ? "Sembunyikan" : "Tampilkan"}
+                          >
+                            {isSecretUnlocked ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2.5">
@@ -795,6 +882,50 @@ function App() {
                 className="w-full bg-mazeeda-blue hover:bg-mazeeda-navy text-white font-semibold py-3 rounded-xl transition-colors"
               >
                 Masuk
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Unlock Secret Modal */}
+      {showUnlockModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative">
+            <button 
+              onClick={() => {
+                setShowUnlockModal(false);
+                setUnlockPasswordInput('');
+                setUnlockError('');
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <Lock className="w-5 h-5 mr-2 text-mazeeda-blue" />
+              Verifikasi Password
+            </h2>
+            <p className="text-gray-500 text-sm mb-4">
+              Masukkan password admin untuk melihat data yang dirahasiakan.
+            </p>
+            <form onSubmit={handleUnlockSecret}>
+              <div className="mb-4">
+                <input 
+                  type="password" 
+                  placeholder="Masukkan Password Admin"
+                  value={unlockPasswordInput}
+                  onChange={(e) => setUnlockPasswordInput(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:border-mazeeda-blue focus:ring-1 focus:ring-mazeeda-blue transition-all"
+                  autoFocus
+                />
+                {unlockError && <p className="text-red-500 text-xs mt-1 ml-1">{unlockError}</p>}
+              </div>
+              <button 
+                type="submit"
+                className="w-full bg-mazeeda-blue hover:bg-mazeeda-navy text-white font-semibold py-3 rounded-xl transition-colors"
+              >
+                Tampilkan Data
               </button>
             </form>
           </div>
