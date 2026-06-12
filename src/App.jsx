@@ -951,26 +951,16 @@ function App() {
                     {/* Dynamic Stats Grid */}
                     <div className="grid grid-cols-2 gap-3">
                       {stats.data.map((item, idx) => {
-                        let colorClass = "bg-gray-50 border-gray-100 hover:bg-gray-100";
-                        let countColor = "text-gray-800";
-                        
                         const statusLower = item.status.toLowerCase();
-                        if (statusLower.includes('aktif')) {
-                          colorClass = "bg-green-50/80 border-green-100 hover:bg-green-100";
-                          countColor = "text-green-700";
-                        } else if (statusLower.includes('boyong') || statusLower.includes('keluar') || statusLower.includes('berhenti')) {
-                          colorClass = "bg-red-50/80 border-red-100 hover:bg-red-100";
-                          countColor = "text-red-700";
-                        } else if (statusLower.includes('alumni') || statusLower.includes('lulus')) {
-                          colorClass = "bg-blue-50/80 border-blue-100 hover:bg-blue-100";
-                          countColor = "text-blue-700";
-                        } else if (statusLower.includes('cuti') || statusLower.includes('izin')) {
-                          colorClass = "bg-amber-50/80 border-amber-100 hover:bg-amber-100";
-                          countColor = "text-amber-700";
-                        } else if (statusLower.includes('tugas') || statusLower.includes('pengabdian')) {
-                          colorClass = "bg-purple-50/80 border-purple-100 hover:bg-purple-100";
-                          countColor = "text-purple-700";
-                        }
+                        
+                        // Default untuk SEMUA yang bukan aktif disamakan dengan gaya 'Boyong' (merah)
+                        let colorClass = statusLower.includes('aktif') 
+                          ? "bg-green-50/80 border-green-100 hover:bg-green-100" 
+                          : "bg-red-50/80 border-red-100 hover:bg-red-100";
+                          
+                        let countColor = statusLower.includes('aktif') 
+                          ? "text-green-700" 
+                          : "text-red-600";
 
                         return (
                           <button 
