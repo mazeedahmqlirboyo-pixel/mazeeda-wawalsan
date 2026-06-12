@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Upload, Trash2, X, Lock, CheckCircle, XCircle, AlertTriangle, Download, MapPin, Calendar, Users, Home, BookOpen, Map, User, Heart, Eye, EyeOff } from 'lucide-react';
+import { Search, Upload, Trash2, X, Lock, CheckCircle, XCircle, AlertTriangle, Download, MapPin, Calendar, Users, Home, BookOpen, Map, User, Heart, Eye, EyeOff, ChevronDown } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { supabase } from './supabaseClient';
 import appLogo from './assets/logo.png';
@@ -150,6 +150,7 @@ function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteOption, setDeleteOption] = useState('Semua');
   const fileInputRef = useRef(null);
 
   // Custom Dialog States
@@ -162,13 +163,27 @@ function App() {
   });
 
   const [stats, setStats] = useState({ aktif: 0, boyong: 0, isLoading: true });
+  const [tahunAjaran, setTahunAjaran] = useState('2026-2027');
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const filterDropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target)) {
+        setIsFilterDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const fetchStats = async () => {
     try {
-      const [{ count: countAktif }, { count: countBoyong }] = await Promise.all([
-        supabase.from('informasimazeeda').select('*', { count: 'exact', head: true }).ilike('status_siswi', '%aktif%'),
-        supabase.from('informasimazeeda').select('*', { count: 'exact', head: true }).ilike('status_siswi', '%boyong%')
-      ]);
+      setStats(prev => ({ ...prev, isLoading: true }));
+      let qAktif = supabase.from('informasimazeeda').select('*', { count: 'exact', head: true }).ilike('status_siswi', '%aktif%').eq('tahun_ajaran', tahunAjaran);
+      let qBoyong = supabase.from('informasimazeeda').select('*', { count: 'exact', head: true }).ilike('status_siswi', '%boyong%').eq('tahun_ajaran', tahunAjaran);
+
+      const [{ count: countAktif }, { count: countBoyong }] = await Promise.all([qAktif, qBoyong]);
       
       setStats({ aktif: countAktif || 0, boyong: countBoyong || 0, isLoading: false });
     } catch (err) {
@@ -179,7 +194,9 @@ function App() {
 
   useEffect(() => {
     fetchStats();
-    
+  }, [tahunAjaran]);
+
+  useEffect(() => {
     // Check initial auth session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -223,11 +240,13 @@ function App() {
         try {
           // Smart Search: Mencari di beberapa kolom sekaligus
           const searchTerm = `%${query.trim()}%`;
-          const { data, error } = await supabase
+          let q = supabase
             .from('informasimazeeda')
             .select('*')
             .or(`nama_siswi.ilike.${searchTerm},daerah_santri.ilike.${searchTerm},kamar_siswi.ilike.${searchTerm},domisili.ilike.${searchTerm}`)
-            .limit(30);
+            .eq('tahun_ajaran', tahunAjaran);
+
+          const { data, error } = await q.limit(30);
             
           if (error) {
             console.error("Error fetching data:", error);
@@ -245,7 +264,7 @@ function App() {
     }, 500); // 500ms debounce
 
     return () => clearTimeout(delayDebounceFn);
-  }, [query]);
+  }, [query, tahunAjaran]);
 
   const showStudentsByStatus = async (status) => {
     setQuery(''); // Kosongkan query pencarian
@@ -253,11 +272,13 @@ function App() {
     setHasSearched(true);
     
     try {
-      const { data, error } = await supabase
+      let q = supabase
         .from('informasimazeeda')
         .select('*')
         .ilike('status_siswi', `%${status}%`)
-        .limit(100); // Batasi 100 agar tidak berat
+        .eq('tahun_ajaran', tahunAjaran);
+
+      const { data, error } = await q.limit(100); // Batasi 100 agar tidak berat
         
       if (error) {
         console.error("Error fetching data:", error);
@@ -330,22 +351,29 @@ function App() {
   };
 
   const handleDeleteClick = () => {
+    const isSemua = deleteOption === 'Semua';
     setDialog({
       isOpen: true,
       type: 'confirm_delete',
-      title: 'Hapus Semua Data',
-      message: 'Yakin ingin menghapus SEMUA data? Aksi ini tidak dapat dibatalkan dan semua data siswi akan hilang!',
-      onConfirm: () => processDeleteAll()
+      title: isSemua ? 'Hapus Semua Data' : `Hapus Data ${deleteOption}`,
+      message: isSemua 
+        ? 'Yakin ingin menghapus SEMUA data? Aksi ini tidak dapat dibatalkan dan semua data siswi akan hilang!'
+        : `Yakin ingin menghapus data tahun ajaran ${deleteOption}? Aksi ini tidak dapat dibatalkan!`,
+      onConfirm: () => processDelete()
     });
   };
 
-  const processDeleteAll = async () => {
+  const processDelete = async () => {
     setIsDeleting(true);
     try {
-      const { error } = await supabase
-        .from('informasimazeeda')
-        .delete()
-        .neq('id', 0); // Hack to delete all rows (id != 0)
+      let query = supabase.from('informasimazeeda').delete();
+      if (deleteOption === 'Semua') {
+        query = query.neq('id', 0); // Hack to delete all rows
+      } else {
+        query = query.eq('tahun_ajaran', deleteOption);
+      }
+      
+      const { error } = await query;
         
       if (error) throw error;
       
@@ -353,7 +381,9 @@ function App() {
         isOpen: true,
         type: 'alert_success',
         title: 'Berhasil Dihapus',
-        message: 'Seluruh data informasi siswi telah berhasil dihapus dari sistem.'
+        message: deleteOption === 'Semua' 
+          ? 'Seluruh data informasi siswi telah berhasil dihapus.' 
+          : `Data tahun ajaran ${deleteOption} telah berhasil dihapus.`
       });
       setResults([]);
       fetchStats();
@@ -399,17 +429,6 @@ function App() {
         }
 
         try {
-          setUploadMessage('Menghapus data lama...');
-          // Delete old data
-          const { error: deleteError } = await supabase
-            .from('informasimazeeda')
-            .delete()
-            .neq('id', 0);
-            
-          if (deleteError) throw deleteError;
-
-          setUploadMessage(`Mengunggah ${data.length} baris data baru...`);
-          
           const cleanData = data.map(row => {
             const cleanRow = {};
             for (let key in row) {
@@ -424,6 +443,21 @@ function App() {
             return cleanRow;
           });
 
+          // Ekstrak tahun ajaran unik dari CSV
+          const uniqueTahunAjaran = [...new Set(cleanData.map(r => r.tahun_ajaran).filter(Boolean))];
+
+          if (uniqueTahunAjaran.length > 0) {
+             setUploadMessage('Membersihkan data tahun ajaran terkait...');
+             const { error: deleteError } = await supabase
+               .from('informasimazeeda')
+               .delete()
+               .in('tahun_ajaran', uniqueTahunAjaran);
+               
+             if (deleteError) throw deleteError;
+          }
+
+          setUploadMessage(`Mengunggah ${data.length} baris data baru...`);
+          
           // Insert in chunks
           const chunkSize = 500;
           for (let i = 0; i < cleanData.length; i += chunkSize) {
@@ -565,14 +599,32 @@ function App() {
                 )}
                 
                 {/* Delete Section */}
-                <button 
-                  onClick={handleDeleteClick}
-                  disabled={isUploading || isDeleting}
-                  className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 py-3 rounded-xl flex items-center justify-center font-medium transition-colors disabled:opacity-50"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  {isDeleting ? 'Menghapus...' : 'Hapus Semua Data'}
-                </button>
+                <div className="flex flex-col gap-2 p-3 bg-red-50/50 rounded-xl border border-red-100 mt-2">
+                  <label className="text-xs font-bold text-red-800 ml-1">Zona Bahaya - Hapus Data</label>
+                  <div className="flex gap-2">
+                    <select
+                      value={deleteOption}
+                      onChange={(e) => setDeleteOption(e.target.value)}
+                      className="flex-1 bg-white border border-red-200 text-red-700 py-2.5 px-3 rounded-lg text-sm outline-none focus:ring-1 focus:ring-red-400 font-medium cursor-pointer"
+                    >
+                      <option value="Semua">Semua Data</option>
+                      <option value="2026-2027">2026-2027</option>
+                      <option value="2027-2028">2027-2028</option>
+                      <option value="2028-2029">2028-2029</option>
+                      <option value="2029-2030">2029-2030</option>
+                      <option value="2030-2031">2030-2031</option>
+                      <option value="2031-2032">2031-2032</option>
+                    </select>
+                    <button 
+                      onClick={handleDeleteClick}
+                      disabled={isUploading || isDeleting}
+                      className="bg-red-500 hover:bg-red-600 text-white px-4 rounded-lg flex items-center justify-center font-bold transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      {isDeleting ? '...' : 'Hapus'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -624,10 +676,15 @@ function App() {
                     
                     {/* Info Text */}
                     <div className="flex flex-col">
-                      <div className="self-start">
+                      <div className="self-start flex gap-2 flex-wrap">
                         <span className="inline-block bg-blue-50 text-mazeeda-blue text-[10px] font-bold px-2 py-0.5 rounded-md mb-1.5 border border-blue-100 uppercase tracking-wider">
                           {siswi.bagian ? toTitleCase(siswi.bagian) : 'Tanpa Bagian'}
                         </span>
+                        {siswi.nis_siswi && (
+                          <span className="inline-block bg-orange-50 text-orange-600 text-[10px] font-bold px-2 py-0.5 rounded-md mb-1.5 border border-orange-100 uppercase tracking-wider">
+                            NIS: {siswi.nis_siswi}
+                          </span>
+                        )}
                       </div>
                       <h2 className="text-lg font-bold text-gray-800 leading-tight">
                         {toTitleCase(siswi.nama_siswi)}
@@ -808,8 +865,47 @@ function App() {
             </div>
           ) : (
             <div className="text-center py-12 text-gray-400">
-              <p className="mb-10 text-gray-500 font-medium">Ketik nama siswi pada kolom pencarian di atas untuk memulai.</p>
+              <p className="mb-6 text-gray-500 font-medium">Ketik nama siswi pada kolom pencarian di atas untuk memulai.</p>
               
+              <div className="mb-10 flex flex-col items-center relative z-20" ref={filterDropdownRef}>
+                <div className="inline-flex items-center bg-gray-100/80 p-1.5 rounded-full shadow-inner border border-gray-200">
+                  <button
+                    onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+                    className="bg-mazeeda-blue text-white rounded-full px-5 py-2.5 text-sm font-bold shadow-md flex items-center justify-between w-[220px] hover:bg-mazeeda-navy transition-colors active:scale-95"
+                  >
+                    <div className="flex items-center">
+                      <Calendar className="w-4 h-4 mr-3 opacity-80" />
+                      <span className="tracking-wide">Tahun {tahunAjaran}</span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isFilterDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+                
+                {isFilterDropdownOpen && (
+                  <div className="absolute top-[calc(100%+8px)] w-[240px] bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-30 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="p-2 flex flex-col gap-1 max-h-64 overflow-y-auto">
+                      {['2026-2027', '2027-2028', '2028-2029', '2029-2030', '2030-2031', '2031-2032'].map((year) => (
+                        <button
+                          key={year}
+                          onClick={() => {
+                            setTahunAjaran(year);
+                            setIsFilterDropdownOpen(false);
+                          }}
+                          className={`px-4 py-3.5 rounded-xl text-sm font-bold text-left transition-colors flex items-center w-full ${
+                            tahunAjaran === year 
+                              ? 'bg-blue-50 text-mazeeda-blue' 
+                              : 'text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="flex-1">Tahun {year}</span>
+                          {tahunAjaran === year && <CheckCircle className="w-5 h-5 text-mazeeda-blue" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Stats Section */}
               <div className="flex justify-center gap-6 mt-4">
                 <button 
