@@ -162,7 +162,7 @@ function App() {
     onConfirm: null 
   });
 
-  const [stats, setStats] = useState({ aktif: 0, boyong: 0, isLoading: true });
+  const [stats, setStats] = useState({ data: [], isLoading: true });
   const [tahunAjaran, setTahunAjaran] = useState('2026-2027');
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const filterDropdownRef = useRef(null);
@@ -180,15 +180,35 @@ function App() {
   const fetchStats = async () => {
     try {
       setStats(prev => ({ ...prev, isLoading: true }));
-      let qAktif = supabase.from('informasimazeeda').select('*', { count: 'exact', head: true }).ilike('status_siswi', '%aktif%').eq('tahun_ajaran', tahunAjaran);
-      let qBoyong = supabase.from('informasimazeeda').select('*', { count: 'exact', head: true }).ilike('status_siswi', '%boyong%').eq('tahun_ajaran', tahunAjaran);
+      // Fetch status_siswi secara dinamis (tanpa batas untuk dihitung)
+      const { data, error } = await supabase
+        .from('informasimazeeda')
+        .select('status_siswi')
+        .eq('tahun_ajaran', tahunAjaran);
 
-      const [{ count: countAktif }, { count: countBoyong }] = await Promise.all([qAktif, qBoyong]);
-      
-      setStats({ aktif: countAktif || 0, boyong: countBoyong || 0, isLoading: false });
+      if (error) throw error;
+
+      // Hitung jumlah masing-masing status
+      const counts = {};
+      if (data) {
+        data.forEach(item => {
+          const status = (item.status_siswi || 'Tidak Diketahui').trim();
+          if (status !== '-') {
+            const statusUpper = status.toUpperCase();
+            counts[statusUpper] = (counts[statusUpper] || 0) + 1;
+          }
+        });
+      }
+
+      const statsArray = Object.keys(counts).map(key => ({
+        status: key,
+        count: counts[key]
+      })).sort((a, b) => b.count - a.count); // Urutkan dari yang terbanyak
+
+      setStats({ data: statsArray, isLoading: false });
     } catch (err) {
       console.error("Gagal mengambil statistik", err);
-      setStats(prev => ({ ...prev, isLoading: false }));
+      setStats({ data: [], isLoading: false });
     }
   };
 
@@ -681,7 +701,7 @@ function App() {
                           {siswi.bagian ? toTitleCase(siswi.bagian) : 'Tanpa Bagian'}
                         </span>
                         {siswi.nis_siswi && (
-                          <span className="inline-block bg-orange-50 text-orange-600 text-[10px] font-bold px-2 py-0.5 rounded-md mb-1.5 border border-orange-100 uppercase tracking-wider">
+                          <span className="inline-block bg-blue-50 text-mazeeda-blue text-[10px] font-bold px-2 py-0.5 rounded-md mb-1.5 border border-blue-100 uppercase tracking-wider">
                             NIS: {siswi.nis_siswi}
                           </span>
                         )}
@@ -906,30 +926,70 @@ function App() {
                 )}
               </div>
 
-              {/* Stats Section */}
-              <div className="flex justify-center gap-6 mt-4">
-                <button 
-                  onClick={() => showStudentsByStatus('aktif')}
-                  className="bg-green-50 text-green-700 px-6 py-4 rounded-2xl border border-green-100 flex flex-col items-center shadow-sm w-36 transition-all hover:scale-105 hover:bg-green-100 hover:shadow-md cursor-pointer active:scale-95"
-                >
-                  <span className="text-xs font-bold uppercase tracking-wider mb-2 opacity-80">Santri Aktif</span>
-                  {stats.isLoading ? (
-                    <div className="w-8 h-8 rounded-full border-2 border-green-200 border-t-green-600 animate-spin mt-1 mb-1"></div>
-                  ) : (
-                    <span className="text-4xl font-extrabold">{stats.aktif}</span>
-                  )}
-                </button>
-                <button 
-                  onClick={() => showStudentsByStatus('boyong')}
-                  className="bg-red-50 text-red-700 px-6 py-4 rounded-2xl border border-red-100 flex flex-col items-center shadow-sm w-36 transition-all hover:scale-105 hover:bg-red-100 hover:shadow-md cursor-pointer active:scale-95"
-                >
-                  <span className="text-xs font-bold uppercase tracking-wider mb-2 opacity-80">Boyong</span>
-                  {stats.isLoading ? (
-                    <div className="w-8 h-8 rounded-full border-2 border-red-200 border-t-red-600 animate-spin mt-1 mb-1"></div>
-                  ) : (
-                    <span className="text-4xl font-extrabold">{stats.boyong}</span>
-                  )}
-                </button>
+              {/* Stats Section Redesign */}
+              <div className="w-full max-w-sm mx-auto px-4 mt-2 mb-8">
+                {stats.isLoading ? (
+                  <div className="flex justify-center w-full py-10">
+                     <div className="w-10 h-10 rounded-full border-4 border-mazeeda-blue border-t-transparent animate-spin"></div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {/* Total Keseluruhan Card */}
+                    <div className="bg-gradient-to-br from-mazeeda-blue to-blue-600 rounded-3xl p-6 shadow-lg shadow-blue-200/50 text-white relative overflow-hidden flex flex-col items-center justify-center text-center">
+                      <div className="absolute -right-4 -top-4 opacity-10">
+                        <Users className="w-32 h-32" />
+                      </div>
+                      <p className="text-blue-100 text-xs font-bold uppercase tracking-[0.2em] mb-2 z-10">Total Keseluruhan</p>
+                      <div className="flex items-end justify-center gap-2 z-10">
+                        <h2 className="text-6xl font-black leading-none tracking-tight">
+                          {stats.data.reduce((sum, item) => sum + item.count, 0)}
+                        </h2>
+                        <span className="text-blue-100 font-medium mb-1.5">Siswi</span>
+                      </div>
+                    </div>
+
+                    {/* Dynamic Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {stats.data.map((item, idx) => {
+                        let colorClass = "bg-gray-50 border-gray-100 hover:bg-gray-100";
+                        let countColor = "text-gray-800";
+                        
+                        const statusLower = item.status.toLowerCase();
+                        if (statusLower.includes('aktif')) {
+                          colorClass = "bg-green-50/80 border-green-100 hover:bg-green-100";
+                          countColor = "text-green-700";
+                        } else if (statusLower.includes('boyong') || statusLower.includes('keluar') || statusLower.includes('berhenti')) {
+                          colorClass = "bg-red-50/80 border-red-100 hover:bg-red-100";
+                          countColor = "text-red-700";
+                        } else if (statusLower.includes('alumni') || statusLower.includes('lulus')) {
+                          colorClass = "bg-blue-50/80 border-blue-100 hover:bg-blue-100";
+                          countColor = "text-blue-700";
+                        } else if (statusLower.includes('cuti') || statusLower.includes('izin')) {
+                          colorClass = "bg-amber-50/80 border-amber-100 hover:bg-amber-100";
+                          countColor = "text-amber-700";
+                        } else if (statusLower.includes('tugas') || statusLower.includes('pengabdian')) {
+                          colorClass = "bg-purple-50/80 border-purple-100 hover:bg-purple-100";
+                          countColor = "text-purple-700";
+                        }
+
+                        return (
+                          <button 
+                            key={idx}
+                            onClick={() => showStudentsByStatus(item.status)}
+                            className={`${colorClass} p-4 rounded-2xl border flex flex-col justify-between shadow-sm transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer active:scale-95 text-left h-[100px]`}
+                          >
+                            <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 text-gray-800 leading-tight">
+                              {item.status}
+                            </span>
+                            <span className={`text-3xl font-black ${countColor} self-end`}>
+                              {item.count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
