@@ -9,14 +9,14 @@ const formatWhatsAppNumber = (phone) => {
   if (!phone) return '';
   // Remove all non-numeric characters
   let cleanNumber = String(phone).replace(/\D/g, '');
-  
+
   // Format to standard 62
   if (cleanNumber.startsWith('0')) {
     cleanNumber = '62' + cleanNumber.substring(1);
   } else if (cleanNumber.startsWith('8')) {
     cleanNumber = '62' + cleanNumber;
   }
-  
+
   return cleanNumber;
 };
 
@@ -32,9 +32,9 @@ const toTitleCase = (str) => {
 
 const calculateAge = (dateString) => {
   if (!dateString || typeof dateString !== 'string') return null;
-  
+
   let birthDate;
-  
+
   // Try to parse DD-MM-YYYY, DD/MM/YYYY, or DD.MM.YYYY
   const indonesianDateMatch = dateString.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
   if (indonesianDateMatch) {
@@ -70,12 +70,12 @@ const calculateAge = (dateString) => {
     years--;
     months += 12;
   }
-  
+
   let ageString = '';
   if (years > 0) ageString += `${years} Thn `;
   if (months > 0) ageString += `${months} Bln `;
   if (days > 0) ageString += `${days} Hr`;
-  
+
   return ageString.trim() || '0 Hr';
 };
 
@@ -83,10 +83,10 @@ const formatAgeDisplay = (siswi, isUnlocked) => {
   if (!siswi) return '-';
   const rawAge = calculateAge(siswi.tanggal_lahir) || siswi.umur_siswi;
   if (!rawAge) return '-';
-  
+
   const displayAge = toTitleCase(rawAge);
   if (isUnlocked) return displayAge;
-  
+
   return displayAge
     .replace(/\b\d+\b(?=\s*(bln|bulan|Bln|Bulan))/gi, '**')
     .replace(/\b\d+\b(?=\s*(hr|hari|Hr|Hari))/gi, '**');
@@ -140,26 +140,31 @@ function App() {
   const [loginError, setLoginError] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  
+
   // Secret Fields Visibility States
   const [isSecretUnlocked, setIsSecretUnlocked] = useState(false);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [unlockPasswordInput, setUnlockPasswordInput] = useState('');
   const [unlockError, setUnlockError] = useState('');
-  
+
   const [isUploading, setIsUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteOption, setDeleteOption] = useState('Semua');
   const fileInputRef = useRef(null);
 
+  // System Access Status States
+  const [isSystemDeactivated, setIsSystemDeactivated] = useState(false);
+  const [isSystemChecking, setIsSystemChecking] = useState(true);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+
   // Custom Dialog States
-  const [dialog, setDialog] = useState({ 
-    isOpen: false, 
+  const [dialog, setDialog] = useState({
+    isOpen: false,
     type: '', // confirm_upload, confirm_delete, alert_success, alert_error
-    title: '', 
-    message: '', 
-    onConfirm: null 
+    title: '',
+    message: '',
+    onConfirm: null
   });
 
   const [stats, setStats] = useState({ data: [], isLoading: true });
@@ -239,6 +244,31 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const checkSystemStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('informasimazeeda')
+          .select('*')
+          .eq('nama_siswi', 'SYSTEM_DEACTIVATED')
+          .eq('tahun_ajaran', 'SYSTEM')
+          .maybeSingle();
+
+        if (error) {
+          console.error("Gagal memeriksa status sistem:", error);
+        } else if (data) {
+          setIsSystemDeactivated(data.domisili === 'true');
+        }
+      } catch (err) {
+        console.error("Error checking system status:", err);
+      } finally {
+        setIsSystemChecking(false);
+      }
+    };
+
+    checkSystemStatus();
+  }, []);
+
+  useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       async function searchSiswi() {
         // Jika query kosong dan tidak ada filter aktif
@@ -248,15 +278,15 @@ function App() {
         }
 
         if (!query.trim()) {
-           // Jika query kosong karena dihapus, reset hasil
-           setResults([]);
-           setHasSearched(false);
-           return;
+          // Jika query kosong karena dihapus, reset hasil
+          setResults([]);
+          setHasSearched(false);
+          return;
         }
 
         setIsLoading(true);
         setHasSearched(true);
-        
+
         try {
           // Smart Search: Mencari di beberapa kolom sekaligus
           const searchTerm = `%${query.trim()}%`;
@@ -267,19 +297,19 @@ function App() {
             .eq('tahun_ajaran', tahunAjaran);
 
           const { data, error } = await q.limit(30);
-            
+
           if (error) {
             console.error("Error fetching data:", error);
           } else {
             setResults(data || []);
           }
         } catch (error) {
-           console.error("Unexpected error:", error);
+          console.error("Unexpected error:", error);
         } finally {
           setIsLoading(false);
         }
       }
-      
+
       searchSiswi();
     }, 500); // 500ms debounce
 
@@ -290,7 +320,7 @@ function App() {
     setQuery(''); // Kosongkan query pencarian
     setIsLoading(true);
     setHasSearched(true);
-    
+
     try {
       let q = supabase
         .from('informasimazeeda')
@@ -299,14 +329,14 @@ function App() {
         .eq('tahun_ajaran', tahunAjaran);
 
       const { data, error } = await q.limit(100); // Batasi 100 agar tidak berat
-        
+
       if (error) {
         console.error("Error fetching data:", error);
       } else {
         setResults(data || []);
       }
     } catch (error) {
-       console.error("Unexpected error:", error);
+      console.error("Unexpected error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -322,7 +352,7 @@ function App() {
   const handleAdminLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
-    
+
     // Login menggunakan Supabase Auth dengan email yang sudah diset
     const { data, error } = await supabase.auth.signInWithPassword({
       email: 'admin@mazeeda.com',
@@ -342,7 +372,7 @@ function App() {
   const handleUnlockSecret = async (e) => {
     e.preventDefault();
     setUnlockError('');
-    
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email: 'admin@mazeeda.com',
       password: unlockPasswordInput,
@@ -370,13 +400,72 @@ function App() {
     }
   };
 
+  const handleToggleSystemStatus = async () => {
+    setIsTogglingStatus(true);
+    const newValue = !isSystemDeactivated;
+    try {
+      // Cek apakah data SYSTEM_DEACTIVATED sudah ada
+      const { data, error: fetchError } = await supabase
+        .from('informasimazeeda')
+        .select('id')
+        .eq('nama_siswi', 'SYSTEM_DEACTIVATED')
+        .eq('tahun_ajaran', 'SYSTEM')
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      if (data) {
+        // Jika sudah ada, update kolom domisili
+        const { error: updateError } = await supabase
+          .from('informasimazeeda')
+          .update({ domisili: newValue ? 'true' : 'false' })
+          .eq('id', data.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Jika belum ada, insert baris baru
+        const { error: insertError } = await supabase
+          .from('informasimazeeda')
+          .insert({
+            nama_siswi: 'SYSTEM_DEACTIVATED',
+            tahun_ajaran: 'SYSTEM',
+            domisili: newValue ? 'true' : 'false',
+            wa_utama: '-'
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      setIsSystemDeactivated(newValue);
+
+      setDialog({
+        isOpen: true,
+        type: 'alert_success',
+        title: 'Status Berhasil Diubah',
+        message: newValue
+          ? 'Akses publik aplikasi berhasil dinonaktifkan. Pengunjung biasa tidak akan bisa masuk.'
+          : 'Akses publik aplikasi berhasil diaktifkan kembali. Semua orang bisa masuk.'
+      });
+    } catch (err) {
+      console.error(err);
+      setDialog({
+        isOpen: true,
+        type: 'alert_error',
+        title: 'Gagal Mengubah Status',
+        message: 'Terjadi kesalahan: ' + err.message
+      });
+    } finally {
+      setIsTogglingStatus(false);
+    }
+  };
+
   const handleDeleteClick = () => {
     const isSemua = deleteOption === 'Semua';
     setDialog({
       isOpen: true,
       type: 'confirm_delete',
       title: isSemua ? 'Hapus Semua Data' : `Hapus Data ${deleteOption}`,
-      message: isSemua 
+      message: isSemua
         ? 'Yakin ingin menghapus SEMUA data? Aksi ini tidak dapat dibatalkan dan semua data siswi akan hilang!'
         : `Yakin ingin menghapus data tahun ajaran ${deleteOption}? Aksi ini tidak dapat dibatalkan!`,
       onConfirm: () => processDelete()
@@ -392,17 +481,17 @@ function App() {
       } else {
         query = query.eq('tahun_ajaran', deleteOption);
       }
-      
+
       const { error } = await query;
-        
+
       if (error) throw error;
-      
+
       setDialog({
         isOpen: true,
         type: 'alert_success',
         title: 'Berhasil Dihapus',
-        message: deleteOption === 'Semua' 
-          ? 'Seluruh data informasi siswi telah berhasil dihapus.' 
+        message: deleteOption === 'Semua'
+          ? 'Seluruh data informasi siswi telah berhasil dihapus.'
           : `Data tahun ajaran ${deleteOption} telah berhasil dihapus.`
       });
       setResults([]);
@@ -467,17 +556,17 @@ function App() {
           const uniqueTahunAjaran = [...new Set(cleanData.map(r => r.tahun_ajaran).filter(Boolean))];
 
           if (uniqueTahunAjaran.length > 0) {
-             setUploadMessage('Membersihkan data tahun ajaran terkait...');
-             const { error: deleteError } = await supabase
-               .from('informasimazeeda')
-               .delete()
-               .in('tahun_ajaran', uniqueTahunAjaran);
-               
-             if (deleteError) throw deleteError;
+            setUploadMessage('Membersihkan data tahun ajaran terkait...');
+            const { error: deleteError } = await supabase
+              .from('informasimazeeda')
+              .delete()
+              .in('tahun_ajaran', uniqueTahunAjaran);
+
+            if (deleteError) throw deleteError;
           }
 
           setUploadMessage(`Mengunggah ${data.length} baris data baru...`);
-          
+
           // Insert in chunks
           const chunkSize = 500;
           for (let i = 0; i < cleanData.length; i += chunkSize) {
@@ -485,7 +574,7 @@ function App() {
             const { error: insertError } = await supabase
               .from('informasimazeeda')
               .insert(chunk);
-              
+
             if (insertError) throw insertError;
           }
 
@@ -498,7 +587,7 @@ function App() {
           });
           setTimeout(() => setUploadMessage(''), 3000);
           fetchStats();
-          
+
         } catch (err) {
           console.error(err);
           setUploadMessage('');
@@ -528,10 +617,93 @@ function App() {
     });
   };
 
+  if (isSystemChecking) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 rounded-full border-4 border-mazeeda-blue border-t-transparent animate-spin mb-4"></div>
+          <p className="text-sm font-medium text-gray-500">Memuat Sistem...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isSystemDeactivated && !isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6 font-sans">
+        <div className="w-full max-w-md bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col items-center text-center">
+          {/* Logo */}
+          <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6 border-2 border-white/60 shadow-inner overflow-hidden">
+            <img src={appLogo} alt="Logo MAZEEDA" className="w-full h-full object-cover bg-white" />
+          </div>
+
+          <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 border border-red-500/20 shadow-inner mb-6 animate-pulse">
+            <Lock size={36} strokeWidth={2.5} />
+          </div>
+
+          <h1 className="text-2xl font-black text-white leading-tight mb-3">
+            AKSES DITUTUP SEMENTARA
+          </h1>
+
+          <p className="text-gray-400 text-sm leading-relaxed mb-8">
+            Maaf, akses ke sistem informasi saat ini sedang dinonaktifkan oleh administrator. Silakan hubungi pihak terkait untuk informasi lebih lanjut.
+          </p>
+
+          <div className="mt-4">
+            <button
+              onClick={() => setShowLoginModal(true)}
+              className="text-white/15 hover:text-white/40 p-2 rounded-full transition-all duration-300 active:scale-95"
+              title="Admin Login"
+            >
+              <Lock size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Modals needed inside blocked screen */}
+        {showLoginModal && (
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative animate-in fade-in zoom-in duration-200">
+              <button
+                onClick={() => setShowLoginModal(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <Lock className="w-5 h-5 mr-2 text-mazeeda-blue" />
+                Login Admin
+              </h2>
+              <form onSubmit={handleAdminLogin}>
+                <div className="mb-4">
+                  <input
+                    type="password"
+                    placeholder="Masukkan Password"
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:border-mazeeda-blue focus:ring-1 focus:ring-mazeeda-blue transition-all text-gray-800"
+                    autoFocus
+                  />
+                  {loginError && <p className="text-red-500 text-xs mt-1 ml-1">{loginError}</p>}
+                </div>
+                <button
+                  type="submit"
+                  className="w-full bg-mazeeda-blue hover:bg-mazeeda-navy text-white font-semibold py-3 rounded-xl transition-colors"
+                >
+                  Masuk
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex justify-center pb-safe font-sans">
       <div className="w-full max-w-md bg-white min-h-screen shadow-xl relative pb-10">
-        
+
         {/* Header */}
         <div className="bg-mazeeda-blue text-white pt-10 pb-12 px-6 rounded-b-[2.5rem] relative shadow-md">
           <div className="flex flex-col items-center">
@@ -550,15 +722,15 @@ function App() {
           <div className="bg-white rounded-2xl shadow-lg flex flex-col border border-gray-100 overflow-hidden">
             <div className="flex items-center px-4 py-3 relative">
               <Search className="text-gray-400 w-5 h-5 mr-3 flex-shrink-0" />
-              <input 
-                type="text" 
-                placeholder="Cari nama, asal, domisili..." 
+              <input
+                type="text"
+                placeholder="Cari nama, asal, domisili..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="flex-1 outline-none text-gray-700 bg-transparent placeholder-gray-400 min-w-0"
               />
               {query && (
-                <button 
+                <button
                   onClick={() => setQuery('')}
                   className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full transition-colors flex-shrink-0 ml-2"
                 >
@@ -573,13 +745,13 @@ function App() {
         {isAdmin && showAdminPanel && (
           <div className="px-6 mt-6 mb-2">
             <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 relative">
-              <button 
+              <button
                 onClick={() => setShowAdminPanel(false)}
                 className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
               >
                 <X className="w-5 h-5" />
               </button>
-              <button 
+              <button
                 onClick={async () => {
                   await supabase.auth.signOut();
                 }}
@@ -590,13 +762,33 @@ function App() {
               <h3 className="font-bold text-mazeeda-blue mb-3 flex items-center">
                 <Lock className="w-4 h-4 mr-2" /> Panel Admin
               </h3>
-              
+
               <div className="flex flex-col gap-3">
+                {/* Toggle System Access Status */}
+                <div className="bg-white border border-blue-100 rounded-xl p-3 flex items-center justify-between shadow-sm mb-1">
+                  <div className="flex flex-col mr-2">
+                    <span className="text-xs font-bold text-gray-800">Akses Publik Website</span>
+                    <span className="text-[10px] text-gray-500 leading-tight">
+                      {isSystemDeactivated ? 'Dinonaktifkan (Hanya Admin)' : 'Aktif (Terbuka untuk semua)'}
+                    </span>
+                  </div>
+                  <button
+                    disabled={isTogglingStatus}
+                    onClick={handleToggleSystemStatus}
+                    className={`px-3 py-2 rounded-lg text-xs font-bold text-white transition-all active:scale-95 flex-shrink-0 ${isSystemDeactivated
+                      ? 'bg-emerald-500 hover:bg-emerald-600 shadow-sm shadow-emerald-100'
+                      : 'bg-red-500 hover:bg-red-600 shadow-sm shadow-red-100'
+                      }`}
+                  >
+                    {isTogglingStatus ? '...' : (isSystemDeactivated ? 'Aktifkan' : 'Nonaktifkan')}
+                  </button>
+                </div>
+
                 {/* Upload Section */}
                 <div className="relative">
-                  <input 
-                    type="file" 
-                    accept=".csv" 
+                  <input
+                    type="file"
+                    accept=".csv"
                     onChange={handleFileSelect}
                     ref={fileInputRef}
                     disabled={isUploading || isDeleting}
@@ -610,14 +802,14 @@ function App() {
                     <span className="text-xs text-gray-500 mt-1">Data lama akan ditimpa</span>
                   </div>
                 </div>
-                
+
                 {/* Status Message */}
                 {uploadMessage && (
                   <div className="text-xs text-center p-2 bg-blue-100 text-blue-800 rounded-lg font-medium">
                     {uploadMessage}
                   </div>
                 )}
-                
+
                 {/* Delete Section */}
                 <div className="flex flex-col gap-2 p-3 bg-red-50/50 rounded-xl border border-red-100 mt-2">
                   <label className="text-xs font-bold text-red-800 ml-1">Zona Bahaya - Hapus Data</label>
@@ -635,7 +827,7 @@ function App() {
                       <option value="2030-2031">2030-2031</option>
                       <option value="2031-2032">2031-2032</option>
                     </select>
-                    <button 
+                    <button
                       onClick={handleDeleteClick}
                       disabled={isUploading || isDeleting}
                       className="bg-red-500 hover:bg-red-600 text-white px-4 rounded-lg flex items-center justify-center font-bold transition-colors disabled:opacity-50"
@@ -677,13 +869,13 @@ function App() {
                     {/* Foto / Avatar Initial */}
                     <div className="w-16 h-16 rounded-full bg-blue-50 border-2 border-white shadow-sm overflow-hidden flex-shrink-0 flex items-center justify-center ring-2 ring-gray-50">
                       {siswi.foto_url && siswi.foto_url.trim() !== '' && siswi.foto_url !== '-' ? (
-                        <img 
-                          src={formatImageUrl(siswi.foto_url)} 
-                          alt={`Foto ${siswi.nama_siswi}`} 
-                          className="w-full h-full object-cover" 
+                        <img
+                          src={formatImageUrl(siswi.foto_url)}
+                          alt={`Foto ${siswi.nama_siswi}`}
+                          className="w-full h-full object-cover"
                           referrerPolicy="no-referrer"
                           onError={(e) => {
-                            e.target.onerror = null; 
+                            e.target.onerror = null;
                             e.target.style.display = 'none';
                             if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
                           }}
@@ -693,7 +885,7 @@ function App() {
                         {siswi.nama_siswi ? siswi.nama_siswi.charAt(0).toUpperCase() : '?'}
                       </span>
                     </div>
-                    
+
                     {/* Info Text */}
                     <div className="flex flex-col">
                       <div className="self-start flex gap-2 flex-wrap">
@@ -711,13 +903,13 @@ function App() {
                       </h2>
                     </div>
                   </div>
-                  
+
                   {/* Additional Info */}
                   <div className="grid grid-cols-2 gap-x-3 gap-y-4 text-sm text-gray-700 mb-6 bg-gradient-to-br from-gray-50 to-white p-5 rounded-2xl border border-gray-100 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
                     <div className="flex gap-2.5">
                       <div className="mt-0.5"><User className="w-4 h-4 text-blue-400" /></div>
                       <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Nama Ayah</span> 
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Nama Ayah</span>
                         <span className="font-medium text-gray-800">{siswi.nama_ayah ? toTitleCase(siswi.nama_ayah) : '-'}</span>
                         {siswi.status_ayah && String(siswi.status_ayah).trim().toLowerCase() !== 'hidup' && String(siswi.status_ayah).trim() !== '-' && <span className="text-gray-400 text-xs ml-1 italic">(Alm.)</span>}
                       </div>
@@ -725,7 +917,7 @@ function App() {
                     <div className="flex gap-2.5">
                       <div className="mt-0.5"><Heart className="w-4 h-4 text-pink-400" /></div>
                       <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Nama Ibu</span> 
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Nama Ibu</span>
                         <div className="flex items-center gap-1.5">
                           <span className="font-medium text-gray-800">
                             {isSecretUnlocked ? (siswi.nama_ibu ? toTitleCase(siswi.nama_ibu) : '-') : '••••••'}
@@ -733,7 +925,7 @@ function App() {
                           {siswi.status_ibu && String(siswi.status_ibu).trim().toLowerCase() !== 'hidup' && String(siswi.status_ibu).trim() !== '-' && isSecretUnlocked && (
                             <span className="text-gray-400 text-xs ml-0.5 italic">(Almh.)</span>
                           )}
-                          <button 
+                          <button
                             onClick={toggleSecretVisibility}
                             className="text-gray-400 hover:text-gray-600 transition-colors p-0.5"
                             title={isSecretUnlocked ? "Sembunyikan" : "Tampilkan"}
@@ -746,19 +938,19 @@ function App() {
                     <div className="flex gap-2.5">
                       <div className="mt-0.5"><Map className="w-4 h-4 text-emerald-400" /></div>
                       <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Daerah Santri</span> 
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Daerah Santri</span>
                         <span className="font-medium text-gray-800">{siswi.daerah_santri ? toTitleCase(siswi.daerah_santri) : '-'}</span>
                       </div>
                     </div>
                     <div className="flex gap-2.5">
                       <div className="mt-0.5"><Calendar className="w-4 h-4 text-amber-400" /></div>
                       <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Tanggal Lahir</span> 
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Tanggal Lahir</span>
                         <div className="flex items-center gap-1.5">
                           <span className="font-medium text-gray-800">
                             {isSecretUnlocked ? (siswi.tanggal_lahir ? toTitleCase(siswi.tanggal_lahir) : '-') : '••••••'}
                           </span>
-                          <button 
+                          <button
                             onClick={toggleSecretVisibility}
                             className="text-gray-400 hover:text-gray-600 transition-colors p-0.5"
                             title={isSecretUnlocked ? "Sembunyikan" : "Tampilkan"}
@@ -771,12 +963,12 @@ function App() {
                     <div className="flex gap-2.5">
                       <div className="mt-0.5"><User className="w-4 h-4 text-indigo-400" /></div>
                       <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Umur Siswi</span> 
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Umur Siswi</span>
                         <div className="flex items-center gap-1.5">
                           <span className="font-medium text-gray-800">
                             {formatAgeDisplay(siswi, isSecretUnlocked)}
                           </span>
-                          <button 
+                          <button
                             onClick={toggleSecretVisibility}
                             className="text-gray-400 hover:text-gray-600 transition-colors p-0.5"
                             title={isSecretUnlocked ? "Sembunyikan" : "Tampilkan"}
@@ -789,51 +981,51 @@ function App() {
                     <div className="flex gap-2.5">
                       <div className="mt-0.5"><Users className="w-4 h-4 text-orange-400" /></div>
                       <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Keluarga</span> 
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Keluarga</span>
                         <span className="font-medium text-gray-800">Anak ke-{siswi.anak_ke || '-'} dr {siswi.jumlah_saudara || '-'}</span>
                       </div>
                     </div>
                     <div className="flex gap-2.5">
                       <div className="mt-0.5"><Home className="w-4 h-4 text-teal-400" /></div>
                       <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Kamar</span> 
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Kamar</span>
                         <span className="font-medium text-gray-800">{siswi.kamar_siswi ? toTitleCase(siswi.kamar_siswi) : '-'}</span>
                       </div>
                     </div>
                     <div className="flex gap-2.5">
                       <div className="mt-0.5"><CheckCircle className="w-4 h-4 text-green-500" /></div>
                       <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Status Siswi</span> 
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Status Siswi</span>
                         <span className="font-medium text-gray-800">{siswi.status_siswi ? toTitleCase(siswi.status_siswi) : '-'}</span>
                       </div>
                     </div>
                     <div className="flex gap-2.5">
                       <div className="mt-0.5"><BookOpen className="w-4 h-4 text-purple-400" /></div>
                       <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Status Tahfiz</span> 
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Status Tahfiz</span>
                         <span className="font-medium text-gray-800">{siswi.status_tahfiz ? toTitleCase(siswi.status_tahfiz) : '-'}</span>
                       </div>
                     </div>
                     <div className="flex gap-2.5">
                       <div className="mt-0.5"><MapPin className="w-4 h-4 text-red-400" /></div>
                       <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Domisili</span> 
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Domisili</span>
                         <span className="font-medium text-gray-800">{siswi.domisili ? toTitleCase(siswi.domisili) : '-'}</span>
                       </div>
                     </div>
                     <div className="col-span-2 flex gap-2.5 mt-1 pt-3 border-t border-gray-100">
                       <div className="mt-0.5"><MapPin className="w-4 h-4 text-gray-400" /></div>
                       <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Alamat Lengkap</span> 
+                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Alamat Lengkap</span>
                         <span className="font-medium text-gray-800 leading-snug block uppercase">{siswi.alamat_lengkap ? siswi.alamat_lengkap : '-'}</span>
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Buttons */}
                   <div className="flex flex-col sm:flex-row gap-3 mt-2">
                     {siswi.wa_utama && String(siswi.wa_utama).trim() !== '' && String(siswi.wa_utama).trim().toLowerCase() !== 'null' && String(siswi.wa_utama).trim() !== '-' ? (
-                      <button 
+                      <button
                         onClick={() => openWhatsApp(siswi.wa_utama)}
                         className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3.5 px-4 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 shadow-md shadow-green-200/50 hover:shadow-lg hover:shadow-green-300/50"
                       >
@@ -841,7 +1033,7 @@ function App() {
                         WA Ayah
                       </button>
                     ) : (
-                      <button 
+                      <button
                         disabled
                         className="flex-1 bg-gray-50 text-gray-400 py-3.5 px-4 rounded-xl flex items-center justify-center font-medium cursor-not-allowed border border-gray-200/60"
                       >
@@ -851,9 +1043,9 @@ function App() {
                         WA Ayah Kosong
                       </button>
                     )}
-                    
+
                     {siswi.wa_tambahan && String(siswi.wa_tambahan).trim() !== '' && String(siswi.wa_tambahan).trim().toLowerCase() !== 'null' && String(siswi.wa_tambahan).trim() !== '-' ? (
-                      <button 
+                      <button
                         onClick={() => openWhatsApp(siswi.wa_tambahan)}
                         className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3.5 px-4 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 shadow-md shadow-green-200/50 hover:shadow-lg hover:shadow-green-300/50"
                       >
@@ -861,7 +1053,7 @@ function App() {
                         WA Ibu
                       </button>
                     ) : (
-                      <button 
+                      <button
                         disabled
                         className="flex-1 bg-gray-50 text-gray-400 py-3.5 px-4 rounded-xl flex items-center justify-center font-medium cursor-not-allowed border border-gray-200/60"
                       >
@@ -886,7 +1078,7 @@ function App() {
           ) : (
             <div className="text-center py-12 text-gray-400">
               <p className="mb-6 text-gray-500 font-medium">Ketik nama siswi pada kolom pencarian di atas untuk memulai.</p>
-              
+
               <div className="mb-10 flex flex-col items-center relative z-20" ref={filterDropdownRef}>
                 <div className="inline-flex items-center bg-gray-100/80 p-1.5 rounded-full shadow-inner border border-gray-200">
                   <button
@@ -900,7 +1092,7 @@ function App() {
                     <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isFilterDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                 </div>
-                
+
                 {isFilterDropdownOpen && (
                   <div className="absolute top-[calc(100%+8px)] w-[240px] bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-30 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="p-2 flex flex-col gap-1 max-h-64 overflow-y-auto">
@@ -911,11 +1103,10 @@ function App() {
                             setTahunAjaran(year);
                             setIsFilterDropdownOpen(false);
                           }}
-                          className={`px-4 py-3.5 rounded-xl text-sm font-bold text-left transition-colors flex items-center w-full ${
-                            tahunAjaran === year 
-                              ? 'bg-blue-50 text-mazeeda-blue' 
-                              : 'text-gray-600 hover:bg-gray-50'
-                          }`}
+                          className={`px-4 py-3.5 rounded-xl text-sm font-bold text-left transition-colors flex items-center w-full ${tahunAjaran === year
+                            ? 'bg-blue-50 text-mazeeda-blue'
+                            : 'text-gray-600 hover:bg-gray-50'
+                            }`}
                         >
                           <span className="flex-1">Tahun {year}</span>
                           {tahunAjaran === year && <CheckCircle className="w-5 h-5 text-mazeeda-blue" />}
@@ -930,7 +1121,7 @@ function App() {
               <div className="w-full max-w-sm mx-auto px-4 mt-2 mb-8">
                 {stats.isLoading ? (
                   <div className="flex justify-center w-full py-10">
-                     <div className="w-10 h-10 rounded-full border-4 border-mazeeda-blue border-t-transparent animate-spin"></div>
+                    <div className="w-10 h-10 rounded-full border-4 border-mazeeda-blue border-t-transparent animate-spin"></div>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-4">
@@ -952,18 +1143,18 @@ function App() {
                     <div className="grid grid-cols-2 gap-3">
                       {stats.data.map((item, idx) => {
                         const statusLower = item.status.toLowerCase();
-                        
+
                         // Default untuk SEMUA yang bukan aktif disamakan dengan gaya 'Boyong' (merah)
-                        let colorClass = statusLower.includes('aktif') 
-                          ? "bg-green-50/80 border-green-100 hover:bg-green-100" 
+                        let colorClass = statusLower.includes('aktif')
+                          ? "bg-green-50/80 border-green-100 hover:bg-green-100"
                           : "bg-red-50/80 border-red-100 hover:bg-red-100";
-                          
-                        let countColor = statusLower.includes('aktif') 
-                          ? "text-green-700" 
+
+                        let countColor = statusLower.includes('aktif')
+                          ? "text-green-700"
                           : "text-red-600";
 
                         return (
-                          <button 
+                          <button
                             key={idx}
                             onClick={() => showStudentsByStatus(item.status)}
                             className={`${colorClass} p-4 rounded-2xl border flex flex-col justify-between shadow-sm transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer active:scale-95 text-left h-[100px]`}
@@ -984,10 +1175,10 @@ function App() {
             </div>
           )}
         </div>
-        
+
         {/* Admin Login Trigger - Tiny text at bottom */}
         <div className="absolute bottom-4 left-0 right-0 text-center">
-          <button 
+          <button
             onClick={() => isAdmin ? setShowAdminPanel(true) : setShowLoginModal(true)}
             className="text-[10px] text-gray-300 hover:text-gray-500 transition-colors bg-transparent px-4 py-1"
           >
@@ -1001,7 +1192,7 @@ function App() {
       {showLoginModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative">
-            <button 
+            <button
               onClick={() => setShowLoginModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
             >
@@ -1013,8 +1204,8 @@ function App() {
             </h2>
             <form onSubmit={handleAdminLogin}>
               <div className="mb-4">
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   placeholder="Masukkan Password"
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
@@ -1023,7 +1214,7 @@ function App() {
                 />
                 {loginError && <p className="text-red-500 text-xs mt-1 ml-1">{loginError}</p>}
               </div>
-              <button 
+              <button
                 type="submit"
                 className="w-full bg-mazeeda-blue hover:bg-mazeeda-navy text-white font-semibold py-3 rounded-xl transition-colors"
               >
@@ -1038,7 +1229,7 @@ function App() {
       {showUnlockModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative">
-            <button 
+            <button
               onClick={() => {
                 setShowUnlockModal(false);
                 setUnlockPasswordInput('');
@@ -1057,8 +1248,8 @@ function App() {
             </p>
             <form onSubmit={handleUnlockSecret}>
               <div className="mb-4">
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   placeholder="Masukkan Password Admin"
                   value={unlockPasswordInput}
                   onChange={(e) => setUnlockPasswordInput(e.target.value)}
@@ -1067,7 +1258,7 @@ function App() {
                 />
                 {unlockError && <p className="text-red-500 text-xs mt-1 ml-1">{unlockError}</p>}
               </div>
-              <button 
+              <button
                 type="submit"
                 className="w-full bg-mazeeda-blue hover:bg-mazeeda-navy text-white font-semibold py-3 rounded-xl transition-colors"
               >
@@ -1082,25 +1273,25 @@ function App() {
       {dialog.isOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl relative animate-in fade-in zoom-in duration-200">
-            
+
             {/* Icon based on type */}
             <div className="flex justify-center mb-5">
-               {dialog.type === 'confirm_delete' && <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-red-500 border-4 border-white shadow-inner"><AlertTriangle size={36} strokeWidth={2.5} /></div>}
-               {dialog.type === 'confirm_upload' && <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center text-mazeeda-blue border-4 border-white shadow-inner"><Upload size={36} strokeWidth={2.5} /></div>}
-               {dialog.type === 'alert_success' && <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center text-green-500 border-4 border-white shadow-inner"><CheckCircle size={36} strokeWidth={2.5} /></div>}
-               {dialog.type === 'alert_error' && <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-red-500 border-4 border-white shadow-inner"><XCircle size={36} strokeWidth={2.5} /></div>}
+              {dialog.type === 'confirm_delete' && <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-red-500 border-4 border-white shadow-inner"><AlertTriangle size={36} strokeWidth={2.5} /></div>}
+              {dialog.type === 'confirm_upload' && <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center text-mazeeda-blue border-4 border-white shadow-inner"><Upload size={36} strokeWidth={2.5} /></div>}
+              {dialog.type === 'alert_success' && <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center text-green-500 border-4 border-white shadow-inner"><CheckCircle size={36} strokeWidth={2.5} /></div>}
+              {dialog.type === 'alert_error' && <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-red-500 border-4 border-white shadow-inner"><XCircle size={36} strokeWidth={2.5} /></div>}
             </div>
-            
+
             <h2 className="text-xl font-bold text-center text-gray-800 mb-3">
               {dialog.title}
             </h2>
             <p className="text-center text-gray-600 mb-8 text-sm leading-relaxed">
               {dialog.message}
             </p>
-            
+
             {dialog.type.startsWith('confirm_') ? (
               <div className="flex gap-3">
-                <button 
+                <button
                   onClick={() => {
                     setDialog({ ...dialog, isOpen: false });
                     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -1109,7 +1300,7 @@ function App() {
                 >
                   Batal
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     setDialog({ ...dialog, isOpen: false });
                     if (dialog.onConfirm) dialog.onConfirm();
@@ -1120,7 +1311,7 @@ function App() {
                 </button>
               </div>
             ) : (
-              <button 
+              <button
                 onClick={() => setDialog({ ...dialog, isOpen: false })}
                 className="w-full bg-mazeeda-blue hover:bg-mazeeda-navy text-white font-bold py-3.5 rounded-xl transition-colors"
               >
@@ -1137,7 +1328,7 @@ function App() {
           <div className="max-w-md mx-auto bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-blue-100 p-4 flex items-center justify-between">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-white rounded-xl shadow-inner border border-gray-100 flex items-center justify-center mr-3 overflow-hidden p-1">
-                 <img src={appLogo} alt="Logo" className="w-full h-full object-contain" />
+                <img src={appLogo} alt="Logo" className="w-full h-full object-contain" />
               </div>
               <div>
                 <h4 className="font-bold text-gray-800 text-sm leading-tight">Install Mazeeda</h4>
@@ -1145,19 +1336,19 @@ function App() {
               </div>
             </div>
             <div className="flex items-center gap-2 ml-2">
-               <button 
-                 onClick={() => setShowInstallPrompt(false)}
-                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-               >
-                 <X className="w-4 h-4" />
-               </button>
-               <button 
-                 onClick={handleInstallClick}
-                 className="bg-mazeeda-blue hover:bg-mazeeda-navy text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-transform active:scale-95 shadow-sm whitespace-nowrap flex items-center"
-               >
-                 <Download className="w-3 h-3 mr-1.5" />
-                 Install
-               </button>
+              <button
+                onClick={() => setShowInstallPrompt(false)}
+                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleInstallClick}
+                className="bg-mazeeda-blue hover:bg-mazeeda-navy text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-transform active:scale-95 shadow-sm whitespace-nowrap flex items-center"
+              >
+                <Download className="w-3 h-3 mr-1.5" />
+                Install
+              </button>
             </div>
           </div>
         </div>
