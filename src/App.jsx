@@ -135,6 +135,7 @@ function App() {
   const [allData, setAllData] = useState([]);
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('beranda');
   
 
@@ -348,6 +349,25 @@ function App() {
       }
     }
   };
+
+  
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen bg-mazeeda-navy flex flex-col items-center justify-center p-6 text-white font-sans">
+        <div className="w-28 h-28 bg-white rounded-3xl p-3 shadow-[0_10px_40px_rgba(0,0,0,0.3)] mb-8 relative">
+          <div className="absolute inset-0 bg-white rounded-3xl animate-ping opacity-20"></div>
+          <img src={appLogo} alt="Mazeeda Logo" className="w-full h-full object-contain relative z-10" />
+        </div>
+        <div className="flex flex-col items-center gap-5">
+          <div className="w-10 h-10 rounded-full border-4 border-white/20 border-t-white animate-spin"></div>
+          <div className="text-center">
+            <h2 className="text-xl font-black tracking-widest mb-2">SINKRONISASI DATA</h2>
+            <p className="text-blue-200 text-sm max-w-[260px] mx-auto font-medium leading-relaxed">Menyiapkan data santri terbaru langsung dari server. Mohon tunggu...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex justify-center pb-safe font-sans">
