@@ -180,12 +180,11 @@ function App() {
     setStats({ data: [], isLoading: true });
     try {
       let combined = [];
-      for (const sheet of SHEET_URLS) {
-        if (!sheet.url || sheet.url.includes('PASTE_LINK_CSV')) continue;
-        
-        const noCacheUrl = sheet.url + '&_t=' + new Date().getTime();
-        const response = await fetch(noCacheUrl, { cache: 'no-store' });
-        const csvText = await response.text();
+        for (const sheet of SHEET_URLS) {
+          if (!sheet.url || sheet.url.includes('PASTE_LINK_CSV')) continue;
+          
+          const response = await fetch(sheet.url);
+          const csvText = await response.text();
         
         await new Promise((resolve) => {
           Papa.parse(csvText, {
