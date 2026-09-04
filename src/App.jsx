@@ -233,6 +233,7 @@ function App() {
       setStats({ data: [], isLoading: false });
     } finally {
       setIsLoading(false);
+      setIsInitialLoading(false);
     }
   };
 
