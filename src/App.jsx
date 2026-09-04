@@ -1,22 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Upload, Trash2, X, Lock, CheckCircle, XCircle, AlertTriangle, Download, MapPin, Calendar, Users, Home, BookOpen, Map, User, Heart, Eye, EyeOff, ChevronDown } from 'lucide-react';
+import { Search, X, Lock, CheckCircle, XCircle, AlertTriangle, Download, MapPin, Calendar, Users, Home, BookOpen, Map, User, Heart, Eye, EyeOff, ChevronDown, Moon, Sun, BarChart2 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
-import { supabase } from './supabaseClient';
 import appLogo from './assets/logo.png';
 import Papa from 'papaparse';
+import { supabase } from './supabaseClient';
 
 const formatWhatsAppNumber = (phone) => {
   if (!phone) return '';
-  // Remove all non-numeric characters
   let cleanNumber = String(phone).replace(/\D/g, '');
-
-  // Format to standard 62
   if (cleanNumber.startsWith('0')) {
     cleanNumber = '62' + cleanNumber.substring(1);
   } else if (cleanNumber.startsWith('8')) {
     cleanNumber = '62' + cleanNumber;
   }
-
   return cleanNumber;
 };
 
@@ -32,16 +28,11 @@ const toTitleCase = (str) => {
 
 const calculateAge = (dateString) => {
   if (!dateString || typeof dateString !== 'string') return null;
-
   let birthDate;
-
-  // Try to parse DD-MM-YYYY, DD/MM/YYYY, or DD.MM.YYYY
   const indonesianDateMatch = dateString.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
   if (indonesianDateMatch) {
-    // DD-MM-YYYY
     birthDate = new Date(`${indonesianDateMatch[3]}-${indonesianDateMatch[2]}-${indonesianDateMatch[1]}`);
   } else {
-    // Fallback standard parse
     const monthMap = {
       'januari': 'Jan', 'februari': 'Feb', 'maret': 'Mar', 'april': 'Apr', 'mei': 'May', 'juni': 'Jun',
       'juli': 'Jul', 'agustus': 'Aug', 'september': 'Sep', 'oktober': 'Oct', 'november': 'Nov', 'desember': 'Dec'
@@ -52,67 +43,103 @@ const calculateAge = (dateString) => {
     });
     birthDate = new Date(engDateStr);
   }
-
   if (isNaN(birthDate.getTime())) return null;
-
   const today = new Date();
   let years = today.getFullYear() - birthDate.getFullYear();
   let months = today.getMonth() - birthDate.getMonth();
   let days = today.getDate() - birthDate.getDate();
-
   if (days < 0) {
     months--;
     const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
     days += prevMonth.getDate();
   }
-
   if (months < 0) {
     years--;
     months += 12;
   }
-
   let ageString = '';
   if (years > 0) ageString += `${years} Thn `;
   if (months > 0) ageString += `${months} Bln `;
   if (days > 0) ageString += `${days} Hr`;
-
   return ageString.trim() || '0 Hr';
 };
 
 const formatAgeDisplay = (siswi, isUnlocked) => {
   if (!siswi) return '-';
-  const rawAge = calculateAge(siswi.tanggal_lahir) || siswi.umur_siswi;
+  const rawAge = calculateAge(siswi['TANGGAL LAHIR']);
   if (!rawAge) return '-';
-
   const displayAge = toTitleCase(rawAge);
   if (isUnlocked) return displayAge;
-
   return displayAge
     .replace(/\b\d+\b(?=\s*(bln|bulan|Bln|Bulan))/gi, '**')
     .replace(/\b\d+\b(?=\s*(hr|hari|Hr|Hari))/gi, '**');
 };
 
-
-
 const formatImageUrl = (url) => {
   if (!url) return '';
   let str = String(url).trim();
-  // Parse Google Drive links (handles both /d/ID and ?id=ID formats)
   const driveMatch = str.match(/\/(?:d|file\/d)\/([a-zA-Z0-9_-]+)/i) || str.match(/[?&]id=([a-zA-Z0-9_-]+)/i);
   if (driveMatch && driveMatch[1]) {
-    // Gunakan lh3.googleusercontent.com agar terhindar dari blokir CORS/CORP Google Drive
     return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
   }
   return str;
 };
 
+// ==========================================
+// TEMPAT PASTE LINK CSV GOOGLE SHEETS
+// ==========================================
+const SHEET_URLS = [
+  { url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRgpkxfJi3edqvTFLa8ZU_zYktFDoQmxWiL0qwrQBDyaAXyrUkQikIUbEDd4vmJiINWJRxkQmCh7jDk/pub?gid=0&single=true&output=csv', status: 'Aktif' },
+  { url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRgpkxfJi3edqvTFLa8ZU_zYktFDoQmxWiL0qwrQBDyaAXyrUkQikIUbEDd4vmJiINWJRxkQmCh7jDk/pub?gid=1466832042&single=true&output=csv', status: 'Boyong' },
+  { url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRgpkxfJi3edqvTFLa8ZU_zYktFDoQmxWiL0qwrQBDyaAXyrUkQikIUbEDd4vmJiINWJRxkQmCh7jDk/pub?gid=1452670732&single=true&output=csv', status: 'Tidak Lanjut' }
+];
+// ==========================================
+
+const StatistikDaerah = ({ data }) => {
+  const daerahCount = data.reduce((acc, curr) => {
+    const daerah = curr['DAERAH'] ? curr['DAERAH'].trim().toUpperCase() : 'TIDAK DIKETAHUI';
+    if (daerah && daerah !== '-') {
+      acc[daerah] = (acc[daerah] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  const sortedDaerah = Object.entries(daerahCount)
+    .map(([daerah, count]) => ({ daerah, count }))
+    .sort((a, b) => b.count - a.count);
+
+  return (
+    <div className="max-w-md mx-auto w-full bg-white min-h-screen pt-4 pb-24">
+      <div className="px-6 mb-4">
+        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Statistik Daerah</h2>
+        <p className="text-sm text-gray-500 mt-1">Persebaran asal daerah siswi</p>
+      </div>
+      
+      <div className="mt-2 border-t border-gray-100">
+        {sortedDaerah.map((item, idx) => (
+          <div key={idx} className="flex items-center justify-between py-4 px-6 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center gap-4">
+              <span className="w-6 text-left font-bold text-gray-400 text-sm">{idx + 1}</span>
+              <span className="font-semibold text-gray-800 text-base">{item.daerah}</span>
+            </div>
+            <span className="text-sm font-bold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">{item.count}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 function App() {
   const [query, setQuery] = useState('');
+  const [allData, setAllData] = useState([]);
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('beranda');
+  
+
   const [hasSearched, setHasSearched] = useState(false);
 
-  // PWA Install States
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
@@ -134,102 +161,88 @@ function App() {
     setShowInstallPrompt(false);
   };
 
-  // Admin States
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
-  // Secret Fields Visibility States
   const [isSecretUnlocked, setIsSecretUnlocked] = useState(false);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [unlockPasswordInput, setUnlockPasswordInput] = useState('');
   const [unlockError, setUnlockError] = useState('');
 
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteOption, setDeleteOption] = useState('Semua');
-  const fileInputRef = useRef(null);
-
-  // System Access Status States
-  const [isSystemDeactivated, setIsSystemDeactivated] = useState(false);
-  const [isSystemChecking, setIsSystemChecking] = useState(true);
-  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
-
-  // Custom Dialog States
-  const [dialog, setDialog] = useState({
-    isOpen: false,
-    type: '', // confirm_upload, confirm_delete, alert_success, alert_error
-    title: '',
-    message: '',
-    onConfirm: null
-  });
-
   const [stats, setStats] = useState({ data: [], isLoading: true });
-  const [tahunAjaran, setTahunAjaran] = useState('2026-2027');
-  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
-  const filterDropdownRef = useRef(null);
 
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target)) {
-        setIsFilterDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const fetchStats = async () => {
+  const fetchAllSheets = async () => {
+    setIsLoading(true);
+    setStats({ data: [], isLoading: true });
     try {
-      setStats(prev => ({ ...prev, isLoading: true }));
-      // Fetch status_siswi secara dinamis (tanpa batas untuk dihitung)
-      const { data, error } = await supabase
-        .from('informasimazeeda')
-        .select('status_siswi')
-        .eq('tahun_ajaran', tahunAjaran);
-
-      if (error) throw error;
-
-      // Hitung jumlah masing-masing status
-      const counts = {};
-      if (data) {
-        data.forEach(item => {
-          const status = (item.status_siswi || 'Tidak Diketahui').trim();
-          if (status !== '-') {
-            const statusUpper = status.toUpperCase();
-            counts[statusUpper] = (counts[statusUpper] || 0) + 1;
-          }
+      let combined = [];
+      for (const sheet of SHEET_URLS) {
+        if (!sheet.url || sheet.url.includes('PASTE_LINK_CSV')) continue;
+        
+        const response = await fetch(sheet.url);
+        const csvText = await response.text();
+        
+        await new Promise((resolve) => {
+          Papa.parse(csvText, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (res) => {
+              const parsed = [];
+              res.data.forEach((row, index) => {
+                const cleanRow = {};
+                for (let key in row) {
+                  if (key) cleanRow[key.trim().toUpperCase()] = row[key];
+                }
+                
+                // Jangan hitung baris jika NAMA LENGKAP kosong
+                const nama = cleanRow['NAMA LENGKAP'];
+                if (nama && String(nama).trim() !== '') {
+                  parsed.push({
+                    ...cleanRow,
+                    id: `${sheet.status}-${index}`,
+                    status_database: sheet.status
+                  });
+                }
+              });
+              combined = [...combined, ...parsed];
+              resolve();
+            }
+          });
         });
       }
-
-      const statsArray = Object.keys(counts).map(key => ({
-        status: key,
-        count: counts[key]
-      })).sort((a, b) => b.count - a.count); // Urutkan dari yang terbanyak
-
+      setAllData(combined);
+      
+      // Calculate Stats
+      const counts = { 'AKTIF': 0, 'BOYONG': 0, 'TIDAK LANJUT': 0 };
+      combined.forEach(item => {
+        const status = item.status_database.toUpperCase();
+        if (counts[status] !== undefined) counts[status]++;
+      });
+      
+      const statsArray = Object.keys(counts)
+        .map(key => ({ status: key, count: counts[key] }))
+        .sort((a,b) => b.count - a.count);
+        
       setStats({ data: statsArray, isLoading: false });
     } catch (err) {
-      console.error("Gagal mengambil statistik", err);
+      console.error("Error fetching Google Sheets:", err);
       setStats({ data: [], isLoading: false });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStats();
-  }, [tahunAjaran]);
+    fetchAllSheets();
+  }, []);
 
   useEffect(() => {
-    // Check initial auth session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setIsAdmin(true);
-      }
+      if (session) setIsAdmin(true);
     });
-
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setIsAdmin(true);
@@ -239,107 +252,48 @@ function App() {
         setIsSecretUnlocked(false);
       }
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    const checkSystemStatus = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('informasimazeeda')
-          .select('*')
-          .eq('nama_siswi', 'SYSTEM_DEACTIVATED')
-          .eq('tahun_ajaran', 'SYSTEM')
-          .maybeSingle();
-
-        if (error) {
-          console.error("Gagal memeriksa status sistem:", error);
-        } else if (data) {
-          setIsSystemDeactivated(data.domisili === 'true');
-        }
-      } catch (err) {
-        console.error("Error checking system status:", err);
-      } finally {
-        setIsSystemChecking(false);
-      }
-    };
-
-    checkSystemStatus();
-  }, []);
-
-  useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      async function searchSiswi() {
-        // Jika query kosong dan tidak ada filter aktif
-        if (!query.trim() && !hasSearched) {
-          setResults([]);
-          return;
-        }
-
-        if (!query.trim()) {
-          // Jika query kosong karena dihapus, reset hasil
-          setResults([]);
-          setHasSearched(false);
-          return;
-        }
-
-        setIsLoading(true);
-        setHasSearched(true);
-
-        try {
-          // Smart Search: Mencari di beberapa kolom sekaligus
-          const searchTerm = `%${query.trim()}%`;
-          let q = supabase
-            .from('informasimazeeda')
-            .select('*')
-            .or(`nama_siswi.ilike.${searchTerm},daerah_santri.ilike.${searchTerm},kamar_siswi.ilike.${searchTerm},domisili.ilike.${searchTerm}`)
-            .eq('tahun_ajaran', tahunAjaran);
-
-          const { data, error } = await q.limit(30);
-
-          if (error) {
-            console.error("Error fetching data:", error);
-          } else {
-            setResults(data || []);
-          }
-        } catch (error) {
-          console.error("Unexpected error:", error);
-        } finally {
-          setIsLoading(false);
-        }
+      if (!query.trim() && !hasSearched) {
+        setResults([]);
+        return;
+      }
+      if (!query.trim()) {
+        setResults([]);
+        setHasSearched(false);
+        return;
       }
 
-      searchSiswi();
-    }, 500); // 500ms debounce
+      setIsLoading(true);
+      setHasSearched(true);
+      
+      const searchTerm = query.trim().toLowerCase();
+      const filtered = allData.filter(item => {
+        const nama = (item['NAMA LENGKAP'] || '').toLowerCase();
+        const daerah = (item['DAERAH'] || '').toLowerCase();
+        const kamar = (item['KAMAR'] || '').toLowerCase();
+        const domisili = (item['DOMISILI'] || '').toLowerCase();
+        const nis = (item['NIS'] || '').toLowerCase();
+        return nama.includes(searchTerm) || daerah.includes(searchTerm) || kamar.includes(searchTerm) || domisili.includes(searchTerm) || nis.includes(searchTerm);
+      }).slice(0, 50);
+      
+      setResults(filtered);
+      setIsLoading(false);
+    }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [query, tahunAjaran]);
+  }, [query, allData]);
 
-  const showStudentsByStatus = async (status) => {
-    setQuery(''); // Kosongkan query pencarian
+  const showStudentsByStatus = (status) => {
+    setQuery('');
     setIsLoading(true);
     setHasSearched(true);
-
-    try {
-      let q = supabase
-        .from('informasimazeeda')
-        .select('*')
-        .ilike('status_siswi', `%${status}%`)
-        .eq('tahun_ajaran', tahunAjaran);
-
-      const { data, error } = await q.limit(100); // Batasi 100 agar tidak berat
-
-      if (error) {
-        console.error("Error fetching data:", error);
-      } else {
-        setResults(data || []);
-      }
-    } catch (error) {
-      console.error("Unexpected error:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    const filtered = allData.filter(item => item.status_database.toLowerCase() === status.toLowerCase()).slice(0, 100);
+    setResults(filtered);
+    setIsLoading(false);
   };
 
   const openWhatsApp = (phone) => {
@@ -352,15 +306,12 @@ function App() {
   const handleAdminLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
-
-    // Login menggunakan Supabase Auth dengan email yang sudah diset
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email: 'admin@mazeeda.com',
       password: passwordInput,
     });
-
     if (error) {
-      setLoginError('Password salah atau user tidak ditemukan!');
+      setLoginError('Password salah!');
     } else {
       setIsAdmin(true);
       setShowLoginModal(false);
@@ -372,12 +323,10 @@ function App() {
   const handleUnlockSecret = async (e) => {
     e.preventDefault();
     setUnlockError('');
-
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email: 'admin@mazeeda.com',
       password: unlockPasswordInput,
     });
-
     if (error) {
       setUnlockError('Password salah!');
     } else {
@@ -400,306 +349,6 @@ function App() {
     }
   };
 
-  const handleToggleSystemStatus = async () => {
-    setIsTogglingStatus(true);
-    const newValue = !isSystemDeactivated;
-    try {
-      // Cek apakah data SYSTEM_DEACTIVATED sudah ada
-      const { data, error: fetchError } = await supabase
-        .from('informasimazeeda')
-        .select('id')
-        .eq('nama_siswi', 'SYSTEM_DEACTIVATED')
-        .eq('tahun_ajaran', 'SYSTEM')
-        .maybeSingle();
-
-      if (fetchError) throw fetchError;
-
-      if (data) {
-        // Jika sudah ada, update kolom domisili
-        const { error: updateError } = await supabase
-          .from('informasimazeeda')
-          .update({ domisili: newValue ? 'true' : 'false' })
-          .eq('id', data.id);
-
-        if (updateError) throw updateError;
-      } else {
-        // Jika belum ada, insert baris baru
-        const { error: insertError } = await supabase
-          .from('informasimazeeda')
-          .insert({
-            nama_siswi: 'SYSTEM_DEACTIVATED',
-            tahun_ajaran: 'SYSTEM',
-            domisili: newValue ? 'true' : 'false',
-            wa_utama: '-'
-          });
-
-        if (insertError) throw insertError;
-      }
-
-      setIsSystemDeactivated(newValue);
-
-      setDialog({
-        isOpen: true,
-        type: 'alert_success',
-        title: 'Status Berhasil Diubah',
-        message: newValue
-          ? 'Akses publik aplikasi berhasil dinonaktifkan. Pengunjung biasa tidak akan bisa masuk.'
-          : 'Akses publik aplikasi berhasil diaktifkan kembali. Semua orang bisa masuk.'
-      });
-    } catch (err) {
-      console.error(err);
-      setDialog({
-        isOpen: true,
-        type: 'alert_error',
-        title: 'Gagal Mengubah Status',
-        message: 'Terjadi kesalahan: ' + err.message
-      });
-    } finally {
-      setIsTogglingStatus(false);
-    }
-  };
-
-  const handleDeleteClick = () => {
-    const isSemua = deleteOption === 'Semua';
-    setDialog({
-      isOpen: true,
-      type: 'confirm_delete',
-      title: isSemua ? 'Hapus Semua Data' : `Hapus Data ${deleteOption}`,
-      message: isSemua
-        ? 'Yakin ingin menghapus SEMUA data? Aksi ini tidak dapat dibatalkan dan semua data siswi akan hilang!'
-        : `Yakin ingin menghapus data tahun ajaran ${deleteOption}? Aksi ini tidak dapat dibatalkan!`,
-      onConfirm: () => processDelete()
-    });
-  };
-
-  const processDelete = async () => {
-    setIsDeleting(true);
-    try {
-      let query = supabase.from('informasimazeeda').delete();
-      if (deleteOption === 'Semua') {
-        query = query.neq('id', 0); // Hack to delete all rows
-      } else {
-        query = query.eq('tahun_ajaran', deleteOption);
-      }
-
-      const { error } = await query;
-
-      if (error) throw error;
-
-      setDialog({
-        isOpen: true,
-        type: 'alert_success',
-        title: 'Berhasil Dihapus',
-        message: deleteOption === 'Semua'
-          ? 'Seluruh data informasi siswi telah berhasil dihapus.'
-          : `Data tahun ajaran ${deleteOption} telah berhasil dihapus.`
-      });
-      setResults([]);
-      fetchStats();
-    } catch (err) {
-      console.error(err);
-      setDialog({
-        isOpen: true,
-        type: 'alert_error',
-        title: 'Gagal Menghapus',
-        message: 'Terjadi kesalahan saat menghapus data: ' + err.message
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setDialog({
-      isOpen: true,
-      type: 'confirm_upload',
-      title: 'Konfirmasi Upload',
-      message: 'Tindakan ini akan MENGHAPUS semua data yang ada saat ini dan MENIMPA nya dengan data dari CSV. Apakah Anda yakin?',
-      onConfirm: () => processFileUpload(file)
-    });
-  };
-
-  const processFileUpload = (file) => {
-    setIsUploading(true);
-    setUploadMessage('Membaca file CSV...');
-
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        const data = results.data;
-        if (data.length === 0) {
-          setUploadMessage('File CSV kosong.');
-          setIsUploading(false);
-          return;
-        }
-
-        try {
-          const cleanData = data.map(row => {
-            const cleanRow = {};
-            for (let key in row) {
-              if (key && key.trim() !== '') {
-                // Normalize keys to lowercase to match Supabase schema (e.g., Foto_url -> foto_url)
-                const normalizedKey = key.trim().toLowerCase();
-                cleanRow[normalizedKey] = row[key];
-              }
-            }
-            // hapus id jika ada di CSV agar supabase membuat auto increment baru
-            delete cleanRow['id'];
-            return cleanRow;
-          });
-
-          // Ekstrak tahun ajaran unik dari CSV
-          const uniqueTahunAjaran = [...new Set(cleanData.map(r => r.tahun_ajaran).filter(Boolean))];
-
-          if (uniqueTahunAjaran.length > 0) {
-            setUploadMessage('Membersihkan data tahun ajaran terkait...');
-            const { error: deleteError } = await supabase
-              .from('informasimazeeda')
-              .delete()
-              .in('tahun_ajaran', uniqueTahunAjaran);
-
-            if (deleteError) throw deleteError;
-          }
-
-          setUploadMessage(`Mengunggah ${data.length} baris data baru...`);
-
-          // Insert in chunks
-          const chunkSize = 500;
-          for (let i = 0; i < cleanData.length; i += chunkSize) {
-            const chunk = cleanData.slice(i, i + chunkSize);
-            const { error: insertError } = await supabase
-              .from('informasimazeeda')
-              .insert(chunk);
-
-            if (insertError) throw insertError;
-          }
-
-          setUploadMessage('Upload selesai!');
-          setDialog({
-            isOpen: true,
-            type: 'alert_success',
-            title: 'Upload Berhasil',
-            message: `Sebanyak ${data.length} baris data berhasil ditambahkan ke dalam sistem.`
-          });
-          setTimeout(() => setUploadMessage(''), 3000);
-          fetchStats();
-
-        } catch (err) {
-          console.error(err);
-          setUploadMessage('');
-          setDialog({
-            isOpen: true,
-            type: 'alert_error',
-            title: 'Upload Gagal',
-            message: 'Gagal mengupload data: ' + err.message
-          });
-        } finally {
-          setIsUploading(false);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-        }
-      },
-      error: (error) => {
-        console.error(error);
-        setUploadMessage('');
-        setDialog({
-          isOpen: true,
-          type: 'alert_error',
-          title: 'Format CSV Salah',
-          message: 'Gagal membaca isi file CSV. Pastikan format file sudah benar.'
-        });
-        setIsUploading(false);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
-    });
-  };
-
-  if (isSystemChecking) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
-        <div className="flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full border-4 border-mazeeda-blue border-t-transparent animate-spin mb-4"></div>
-          <p className="text-sm font-medium text-gray-500">Memuat Sistem...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (isSystemDeactivated && !isAdmin) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6 font-sans">
-        <div className="w-full max-w-md bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col items-center text-center">
-          {/* Logo */}
-          <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6 border-2 border-white/60 shadow-inner overflow-hidden">
-            <img src={appLogo} alt="Logo MAZEEDA" className="w-full h-full object-cover bg-white" />
-          </div>
-
-          <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 border border-red-500/20 shadow-inner mb-6 animate-pulse">
-            <Lock size={36} strokeWidth={2.5} />
-          </div>
-
-          <h1 className="text-2xl font-black text-white leading-tight mb-3">
-            AKSES DITUTUP SEMENTARA
-          </h1>
-
-          <p className="text-gray-400 text-sm leading-relaxed mb-8">
-            Maaf, akses ke sistem informasi saat ini sedang dinonaktifkan oleh administrator. Silakan hubungi pihak terkait untuk informasi lebih lanjut.
-          </p>
-
-          <div className="mt-4">
-            <button
-              onClick={() => setShowLoginModal(true)}
-              className="text-white/15 hover:text-white/40 p-2 rounded-full transition-all duration-300 active:scale-95"
-              title="Admin Login"
-            >
-              <Lock size={14} />
-            </button>
-          </div>
-        </div>
-
-        {/* Modals needed inside blocked screen */}
-        {showLoginModal && (
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative animate-in fade-in zoom-in duration-200">
-              <button
-                onClick={() => setShowLoginModal(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                <Lock className="w-5 h-5 mr-2 text-mazeeda-blue" />
-                Login Admin
-              </h2>
-              <form onSubmit={handleAdminLogin}>
-                <div className="mb-4">
-                  <input
-                    type="password"
-                    placeholder="Masukkan Password"
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:border-mazeeda-blue focus:ring-1 focus:ring-mazeeda-blue transition-all text-gray-800"
-                    autoFocus
-                  />
-                  {loginError && <p className="text-red-500 text-xs mt-1 ml-1">{loginError}</p>}
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-mazeeda-blue hover:bg-mazeeda-navy text-white font-semibold py-3 rounded-xl transition-colors"
-                >
-                  Masuk
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 flex justify-center pb-safe font-sans">
       <div className="w-full max-w-md bg-white min-h-screen shadow-xl relative pb-10">
@@ -707,7 +356,6 @@ function App() {
         {/* Header */}
         <div className="bg-mazeeda-blue text-white pt-10 pb-12 px-6 rounded-b-[2.5rem] relative shadow-md">
           <div className="flex flex-col items-center">
-            {/* Logo */}
             <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-4 border-2 border-white/60 shadow-inner overflow-hidden">
               <img src={appLogo} alt="Logo MAZEEDA" className="w-full h-full object-cover bg-white" />
             </div>
@@ -717,7 +365,9 @@ function App() {
           </div>
         </div>
 
-        {/* Search Bar - Floating */}
+        {activeTab === 'beranda' ? (
+        <>
+        {/* Search Bar */}
         <div className="px-6 -mt-6 sticky top-4 z-10">
           <div className="bg-white rounded-2xl shadow-lg flex flex-col border border-gray-100 overflow-hidden">
             <div className="flex items-center px-4 py-3 relative">
@@ -741,7 +391,7 @@ function App() {
           </div>
         </div>
 
-        {/* Admin Panel (if opened) */}
+        {/* Admin Panel */}
         {isAdmin && showAdminPanel && (
           <div className="px-6 mt-6 mb-2">
             <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 relative">
@@ -752,92 +402,15 @@ function App() {
                 <X className="w-5 h-5" />
               </button>
               <button
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                }}
+                onClick={async () => await supabase.auth.signOut()}
                 className="absolute top-3 right-10 text-xs font-bold text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 px-2 py-1 rounded-md transition-colors"
               >
                 Logout
               </button>
-              <h3 className="font-bold text-mazeeda-blue mb-3 flex items-center">
+              <h3 className="font-bold text-mazeeda-blue mb-2 flex items-center">
                 <Lock className="w-4 h-4 mr-2" /> Panel Admin
               </h3>
-
-              <div className="flex flex-col gap-3">
-                {/* Toggle System Access Status */}
-                <div className="bg-white border border-blue-100 rounded-xl p-3 flex items-center justify-between shadow-sm mb-1">
-                  <div className="flex flex-col mr-2">
-                    <span className="text-xs font-bold text-gray-800">Akses Publik Website</span>
-                    <span className="text-[10px] text-gray-500 leading-tight">
-                      {isSystemDeactivated ? 'Dinonaktifkan (Hanya Admin)' : 'Aktif (Terbuka untuk semua)'}
-                    </span>
-                  </div>
-                  <button
-                    disabled={isTogglingStatus}
-                    onClick={handleToggleSystemStatus}
-                    className={`px-3 py-2 rounded-lg text-xs font-bold text-white transition-all active:scale-95 flex-shrink-0 ${isSystemDeactivated
-                      ? 'bg-emerald-500 hover:bg-emerald-600 shadow-sm shadow-emerald-100'
-                      : 'bg-red-500 hover:bg-red-600 shadow-sm shadow-red-100'
-                      }`}
-                  >
-                    {isTogglingStatus ? '...' : (isSystemDeactivated ? 'Aktifkan' : 'Nonaktifkan')}
-                  </button>
-                </div>
-
-                {/* Upload Section */}
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept=".csv"
-                    onChange={handleFileSelect}
-                    ref={fileInputRef}
-                    disabled={isUploading || isDeleting}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                  />
-                  <div className={`bg-white border-2 border-dashed border-blue-300 rounded-xl p-4 text-center flex flex-col items-center justify-center ${isUploading ? 'opacity-70' : 'hover:bg-blue-100'} transition-colors`}>
-                    <Upload className="w-6 h-6 text-mazeeda-blue mb-2" />
-                    <span className="text-sm font-medium text-gray-700">
-                      {isUploading ? 'Memproses CSV...' : 'Upload CSV Baru'}
-                    </span>
-                    <span className="text-xs text-gray-500 mt-1">Data lama akan ditimpa</span>
-                  </div>
-                </div>
-
-                {/* Status Message */}
-                {uploadMessage && (
-                  <div className="text-xs text-center p-2 bg-blue-100 text-blue-800 rounded-lg font-medium">
-                    {uploadMessage}
-                  </div>
-                )}
-
-                {/* Delete Section */}
-                <div className="flex flex-col gap-2 p-3 bg-red-50/50 rounded-xl border border-red-100 mt-2">
-                  <label className="text-xs font-bold text-red-800 ml-1">Zona Bahaya - Hapus Data</label>
-                  <div className="flex gap-2">
-                    <select
-                      value={deleteOption}
-                      onChange={(e) => setDeleteOption(e.target.value)}
-                      className="flex-1 bg-white border border-red-200 text-red-700 py-2.5 px-3 rounded-lg text-sm outline-none focus:ring-1 focus:ring-red-400 font-medium cursor-pointer"
-                    >
-                      <option value="Semua">Semua Data</option>
-                      <option value="2026-2027">2026-2027</option>
-                      <option value="2027-2028">2027-2028</option>
-                      <option value="2028-2029">2028-2029</option>
-                      <option value="2029-2030">2029-2030</option>
-                      <option value="2030-2031">2030-2031</option>
-                      <option value="2031-2032">2031-2032</option>
-                    </select>
-                    <button
-                      onClick={handleDeleteClick}
-                      disabled={isUploading || isDeleting}
-                      className="bg-red-500 hover:bg-red-600 text-white px-4 rounded-lg flex items-center justify-center font-bold transition-colors disabled:opacity-50"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      {isDeleting ? '...' : 'Hapus'}
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <p className="text-xs text-gray-600">Aplikasi saat ini otomatis terhubung dengan Google Sheets. Tidak perlu upload/hapus data dari sini.</p>
             </div>
           </div>
         )}
@@ -852,7 +425,7 @@ function App() {
                   <div className="h-5 bg-gray-200 rounded w-3/4"></div>
                   <div className="flex gap-2 mt-2">
                     <div className="h-10 bg-green-100 rounded-xl w-full"></div>
-                    <div className="h-10 bg-blue-100 rounded-xl w-full"></div>
+                    <div className="h-10 bg-green-100 rounded-xl w-full"></div>
                   </div>
                 </div>
               ))}
@@ -862,210 +435,211 @@ function App() {
               <div className="text-sm text-gray-500 mb-1 px-1 flex justify-between items-center">
                 <span>Ditemukan {results.length} hasil</span>
               </div>
-              {results.map((siswi) => (
-                <div key={siswi.id} className="bg-white border border-gray-100 p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300">
-                  {/* Header Card: Avatar, Badge, & Name */}
-                  <div className="flex items-center gap-4 mb-5">
-                    {/* Foto / Avatar Initial */}
-                    <div className="w-16 h-16 rounded-full bg-blue-50 border-2 border-white shadow-sm overflow-hidden flex-shrink-0 flex items-center justify-center ring-2 ring-gray-50">
-                      {siswi.foto_url && siswi.foto_url.trim() !== '' && siswi.foto_url !== '-' ? (
-                        <img
-                          src={formatImageUrl(siswi.foto_url)}
-                          alt={`Foto ${siswi.nama_siswi}`}
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.style.display = 'none';
-                            if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                      ) : null}
-                      <span className="text-2xl font-bold text-mazeeda-blue" style={{ display: (siswi.foto_url && siswi.foto_url.trim() !== '' && siswi.foto_url !== '-') ? 'none' : 'flex' }}>
-                        {siswi.nama_siswi ? siswi.nama_siswi.charAt(0).toUpperCase() : '?'}
-                      </span>
-                    </div>
+              {results.map((siswi) => {
+                const isBoyong = siswi.status_database !== 'Aktif';
+                const cardClass = isBoyong 
+                  ? "bg-red-50 border border-red-200 p-5 rounded-3xl shadow-[0_8px_30px_rgb(255,0,0,0.06)] hover:shadow-[0_8px_30px_rgb(255,0,0,0.1)] transition-all duration-300"
+                  : "bg-white border border-gray-100 p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300";
+                const badgeClass = isBoyong 
+                  ? "bg-red-100 text-red-700 border-red-200" 
+                  : "bg-blue-50 text-mazeeda-blue border-blue-100";
 
-                    {/* Info Text */}
-                    <div className="flex flex-col">
-                      <div className="self-start flex gap-2 flex-wrap">
-                        <span className="inline-block bg-blue-50 text-mazeeda-blue text-[10px] font-bold px-2 py-0.5 rounded-md mb-1.5 border border-blue-100 uppercase tracking-wider">
-                          {siswi.bagian ? toTitleCase(siswi.bagian) : 'Tanpa Bagian'}
+                return (
+                  <div key={siswi.id} className={cardClass}>
+                    {/* Header Card */}
+                    <div className="flex items-center gap-4 mb-5">
+                      <div className="w-16 h-16 rounded-full bg-blue-50 border-2 border-white shadow-sm overflow-hidden flex-shrink-0 flex items-center justify-center ring-2 ring-gray-50">
+                        {siswi['FOTO URL'] && siswi['FOTO URL'].trim() !== '' && siswi['FOTO URL'] !== '-' ? (
+                          <img
+                            src={formatImageUrl(siswi['FOTO URL'])}
+                            alt={`Foto ${siswi['NAMA LENGKAP']}`}
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.style.display = 'none';
+                              if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <span className="text-2xl font-bold text-mazeeda-blue" style={{ display: (siswi['FOTO URL'] && siswi['FOTO URL'].trim() !== '' && siswi['FOTO URL'] !== '-') ? 'none' : 'flex' }}>
+                          {siswi['NAMA LENGKAP'] ? siswi['NAMA LENGKAP'].charAt(0).toUpperCase() : '?'}
                         </span>
-                        {siswi.nis_siswi && (
-                          <span className="inline-block bg-blue-50 text-mazeeda-blue text-[10px] font-bold px-2 py-0.5 rounded-md mb-1.5 border border-blue-100 uppercase tracking-wider">
-                            NIS: {siswi.nis_siswi}
+                      </div>
+
+                      <div className="flex flex-col">
+                        <div className="self-start flex gap-2 flex-wrap">
+                          <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-md mb-1.5 border uppercase tracking-wider ${badgeClass}`}>
+                            {siswi['BAGIAN'] ? toTitleCase(siswi['BAGIAN']) : 'Tanpa Bagian'}
+                          </span>
+                          {siswi['NIS'] && (
+                            <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-md mb-1.5 border uppercase tracking-wider ${badgeClass}`}>
+                              NIS: {siswi['NIS']}
+                            </span>
+                          )}
+                        </div>
+                        <h2 className="text-lg font-bold text-gray-800 leading-tight">
+                          {toTitleCase(siswi['NAMA LENGKAP'])}
+                        </h2>
+                        {isBoyong && (
+                          <span className="text-xs font-bold text-red-600 mt-1 uppercase">
+                            Status: {siswi.status_database}
                           </span>
                         )}
                       </div>
-                      <h2 className="text-lg font-bold text-gray-800 leading-tight">
-                        {toTitleCase(siswi.nama_siswi)}
-                      </h2>
                     </div>
-                  </div>
 
-                  {/* Additional Info */}
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-4 text-sm text-gray-700 mb-6 bg-gradient-to-br from-gray-50 to-white p-5 rounded-2xl border border-gray-100 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
-                    <div className="flex gap-2.5">
-                      <div className="mt-0.5"><User className="w-4 h-4 text-blue-400" /></div>
-                      <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Nama Ayah</span>
-                        <span className="font-medium text-gray-800">{siswi.nama_ayah ? toTitleCase(siswi.nama_ayah) : '-'}</span>
-                        {siswi.status_ayah && String(siswi.status_ayah).trim().toLowerCase() !== 'hidup' && String(siswi.status_ayah).trim() !== '-' && <span className="text-gray-400 text-xs ml-1 italic">(Alm.)</span>}
+                    {/* Additional Info */}
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-4 text-sm text-gray-700 mb-6 bg-gradient-to-br from-gray-50 to-white p-5 rounded-2xl border border-gray-100 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
+                      <div className="flex gap-2.5">
+                        <div className="mt-0.5"><User className="w-4 h-4 text-blue-400" /></div>
+                        <div>
+                          <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Nama Ayah</span>
+                          <span className="font-medium text-gray-800">{siswi['NAMA AYAH'] ? toTitleCase(siswi['NAMA AYAH']) : '-'}</span>
+                          {siswi['STATUS AYAH'] && String(siswi['STATUS AYAH']).trim().toLowerCase() !== 'hidup' && String(siswi['STATUS AYAH']).trim() !== '-' && <span className="text-gray-400 text-xs ml-1 italic">(Alm.)</span>}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex gap-2.5">
-                      <div className="mt-0.5"><Heart className="w-4 h-4 text-pink-400" /></div>
-                      <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Nama Ibu</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-medium text-gray-800">
-                            {isSecretUnlocked ? (siswi.nama_ibu ? toTitleCase(siswi.nama_ibu) : '-') : '••••••'}
-                          </span>
-                          {siswi.status_ibu && String(siswi.status_ibu).trim().toLowerCase() !== 'hidup' && String(siswi.status_ibu).trim() !== '-' && isSecretUnlocked && (
-                            <span className="text-gray-400 text-xs ml-0.5 italic">(Almh.)</span>
-                          )}
-                          <button
-                            onClick={toggleSecretVisibility}
-                            className="text-gray-400 hover:text-gray-600 transition-colors p-0.5"
-                            title={isSecretUnlocked ? "Sembunyikan" : "Tampilkan"}
-                          >
-                            {isSecretUnlocked ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                          </button>
+                      <div className="flex gap-2.5">
+                        <div className="mt-0.5"><Heart className="w-4 h-4 text-pink-400" /></div>
+                        <div>
+                          <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Nama Ibu</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-gray-800">
+                              {isSecretUnlocked ? (siswi['NAMA IBU'] ? toTitleCase(siswi['NAMA IBU']) : '-') : '••••••'}
+                            </span>
+                            {siswi['STATUS IBU'] && String(siswi['STATUS IBU']).trim().toLowerCase() !== 'hidup' && String(siswi['STATUS IBU']).trim() !== '-' && isSecretUnlocked && (
+                              <span className="text-gray-400 text-xs ml-0.5 italic">(Almh.)</span>
+                            )}
+                            <button
+                              onClick={toggleSecretVisibility}
+                              className="text-gray-400 hover:text-gray-600 transition-colors p-0.5"
+                              title={isSecretUnlocked ? "Sembunyikan" : "Tampilkan"}
+                            >
+                              {isSecretUnlocked ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2.5">
+                        <div className="mt-0.5"><Map className="w-4 h-4 text-emerald-400" /></div>
+                        <div>
+                          <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Daerah Santri</span>
+                          <span className="font-medium text-gray-800">{siswi['DAERAH'] ? toTitleCase(siswi['DAERAH']) : '-'}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2.5">
+                        <div className="mt-0.5"><Calendar className="w-4 h-4 text-amber-400" /></div>
+                        <div>
+                          <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Tanggal Lahir</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-gray-800">
+                              {isSecretUnlocked ? (siswi['TANGGAL LAHIR'] ? toTitleCase(siswi['TANGGAL LAHIR']) : '-') : '••••••'}
+                            </span>
+                            <button
+                              onClick={toggleSecretVisibility}
+                              className="text-gray-400 hover:text-gray-600 transition-colors p-0.5"
+                              title={isSecretUnlocked ? "Sembunyikan" : "Tampilkan"}
+                            >
+                              {isSecretUnlocked ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2.5">
+                        <div className="mt-0.5"><User className="w-4 h-4 text-indigo-400" /></div>
+                        <div>
+                          <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Umur Siswi</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-gray-800">
+                              {formatAgeDisplay(siswi, isSecretUnlocked)}
+                            </span>
+                            <button
+                              onClick={toggleSecretVisibility}
+                              className="text-gray-400 hover:text-gray-600 transition-colors p-0.5"
+                              title={isSecretUnlocked ? "Sembunyikan" : "Tampilkan"}
+                            >
+                              {isSecretUnlocked ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2.5">
+                        <div className="mt-0.5"><Users className="w-4 h-4 text-orange-400" /></div>
+                        <div>
+                          <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Keluarga</span>
+                          <span className="font-medium text-gray-800">Anak ke-{siswi['ANAK KE'] || '-'} dr {siswi['JUMLAH SAUDARA'] || '-'}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2.5">
+                        <div className="mt-0.5"><Home className="w-4 h-4 text-teal-400" /></div>
+                        <div>
+                          <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Kamar</span>
+                          <span className="font-medium text-gray-800">{siswi['KAMAR'] ? toTitleCase(siswi['KAMAR']) : '-'}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2.5">
+                        <div className="mt-0.5"><BookOpen className="w-4 h-4 text-purple-400" /></div>
+                        <div>
+                          <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Status Tahfiz</span>
+                          <span className="font-medium text-gray-800">{siswi['STATUS TAHFIZ'] ? toTitleCase(siswi['STATUS TAHFIZ']) : '-'}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2.5">
+                        <div className="mt-0.5"><MapPin className="w-4 h-4 text-red-400" /></div>
+                        <div>
+                          <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Domisili</span>
+                          <span className="font-medium text-gray-800">{siswi['DOMISILI'] ? toTitleCase(siswi['DOMISILI']) : '-'}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2.5">
+                        <div className="mt-0.5"><CheckCircle className={`w-4 h-4 ${siswi.status_database === 'Aktif' ? 'text-green-500' : 'text-red-500'}`} /></div>
+                        <div>
+                          <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Status Siswi</span>
+                          <span className={`font-medium ${siswi.status_database === 'Aktif' ? 'text-gray-800' : 'text-red-600 font-bold'}`}>{siswi.status_database ? toTitleCase(siswi.status_database) : '-'}</span>
+                        </div>
+                      </div>
+                      <div className="col-span-2 flex gap-2.5 mt-1 pt-3 border-t border-gray-100">
+                        <div className="mt-0.5"><MapPin className="w-4 h-4 text-gray-400" /></div>
+                        <div>
+                          <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Alamat Lengkap</span>
+                          <span className="font-medium text-gray-800 leading-snug block uppercase">{siswi['ALAMAT LENGKAP'] ? siswi['ALAMAT LENGKAP'] : '-'}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2.5">
-                      <div className="mt-0.5"><Map className="w-4 h-4 text-emerald-400" /></div>
-                      <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Daerah Santri</span>
-                        <span className="font-medium text-gray-800">{siswi.daerah_santri ? toTitleCase(siswi.daerah_santri) : '-'}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2.5">
-                      <div className="mt-0.5"><Calendar className="w-4 h-4 text-amber-400" /></div>
-                      <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Tanggal Lahir</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-medium text-gray-800">
-                            {isSecretUnlocked ? (siswi.tanggal_lahir ? toTitleCase(siswi.tanggal_lahir) : '-') : '••••••'}
-                          </span>
-                          <button
-                            onClick={toggleSecretVisibility}
-                            className="text-gray-400 hover:text-gray-600 transition-colors p-0.5"
-                            title={isSecretUnlocked ? "Sembunyikan" : "Tampilkan"}
-                          >
-                            {isSecretUnlocked ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2.5">
-                      <div className="mt-0.5"><User className="w-4 h-4 text-indigo-400" /></div>
-                      <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Umur Siswi</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-medium text-gray-800">
-                            {formatAgeDisplay(siswi, isSecretUnlocked)}
-                          </span>
-                          <button
-                            onClick={toggleSecretVisibility}
-                            className="text-gray-400 hover:text-gray-600 transition-colors p-0.5"
-                            title={isSecretUnlocked ? "Sembunyikan" : "Tampilkan"}
-                          >
-                            {isSecretUnlocked ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2.5">
-                      <div className="mt-0.5"><Users className="w-4 h-4 text-orange-400" /></div>
-                      <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Keluarga</span>
-                        <span className="font-medium text-gray-800">Anak ke-{siswi.anak_ke || '-'} dr {siswi.jumlah_saudara || '-'}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2.5">
-                      <div className="mt-0.5"><Home className="w-4 h-4 text-teal-400" /></div>
-                      <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Kamar</span>
-                        <span className="font-medium text-gray-800">{siswi.kamar_siswi ? toTitleCase(siswi.kamar_siswi) : '-'}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2.5">
-                      <div className="mt-0.5"><CheckCircle className="w-4 h-4 text-green-500" /></div>
-                      <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Status Siswi</span>
-                        <span className="font-medium text-gray-800">{siswi.status_siswi ? toTitleCase(siswi.status_siswi) : '-'}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2.5">
-                      <div className="mt-0.5"><BookOpen className="w-4 h-4 text-purple-400" /></div>
-                      <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Status Tahfiz</span>
-                        <span className="font-medium text-gray-800">{siswi.status_tahfiz ? toTitleCase(siswi.status_tahfiz) : '-'}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2.5">
-                      <div className="mt-0.5"><MapPin className="w-4 h-4 text-red-400" /></div>
-                      <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Domisili</span>
-                        <span className="font-medium text-gray-800">{siswi.domisili ? toTitleCase(siswi.domisili) : '-'}</span>
-                      </div>
-                    </div>
-                    <div className="col-span-2 flex gap-2.5 mt-1 pt-3 border-t border-gray-100">
-                      <div className="mt-0.5"><MapPin className="w-4 h-4 text-gray-400" /></div>
-                      <div>
-                        <span className="font-bold block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Alamat Lengkap</span>
-                        <span className="font-medium text-gray-800 leading-snug block uppercase">{siswi.alamat_lengkap ? siswi.alamat_lengkap : '-'}</span>
-                      </div>
+
+                    {/* Buttons WA */}
+                    <div className="flex flex-col sm:flex-row gap-3 mt-2">
+                      {siswi['NO WA AYAH'] && String(siswi['NO WA AYAH']).trim() !== '' && String(siswi['NO WA AYAH']).trim().toLowerCase() !== 'null' && String(siswi['NO WA AYAH']).trim() !== '-' ? (
+                        <button
+                          onClick={() => openWhatsApp(siswi['NO WA AYAH'])}
+                          className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3.5 px-4 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 shadow-md shadow-green-200/50 hover:shadow-lg hover:shadow-green-300/50"
+                        >
+                          <FaWhatsapp className="w-5 h-5 mr-2" />
+                          WA Ayah
+                        </button>
+                      ) : (
+                        <button disabled className="flex-1 bg-gray-50 text-gray-400 py-3.5 px-4 rounded-xl flex items-center justify-center font-medium cursor-not-allowed border border-gray-200/60">
+                          WA Ayah Kosong
+                        </button>
+                      )}
+
+                      {siswi['NO WA IBU'] && String(siswi['NO WA IBU']).trim() !== '' && String(siswi['NO WA IBU']).trim().toLowerCase() !== 'null' && String(siswi['NO WA IBU']).trim() !== '-' ? (
+                        <button
+                          onClick={() => openWhatsApp(siswi['NO WA IBU'])}
+                          className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3.5 px-4 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 shadow-md shadow-green-200/50 hover:shadow-lg hover:shadow-green-300/50"
+                        >
+                          <FaWhatsapp className="w-5 h-5 mr-2" />
+                          WA Ibu
+                        </button>
+                      ) : (
+                        <button disabled className="flex-1 bg-gray-50 text-gray-400 py-3.5 px-4 rounded-xl flex items-center justify-center font-medium cursor-not-allowed border border-gray-200/60">
+                          WA Ibu Kosong
+                        </button>
+                      )}
                     </div>
                   </div>
-
-                  {/* Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-3 mt-2">
-                    {siswi.wa_utama && String(siswi.wa_utama).trim() !== '' && String(siswi.wa_utama).trim().toLowerCase() !== 'null' && String(siswi.wa_utama).trim() !== '-' ? (
-                      <button
-                        onClick={() => openWhatsApp(siswi.wa_utama)}
-                        className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3.5 px-4 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 shadow-md shadow-green-200/50 hover:shadow-lg hover:shadow-green-300/50"
-                      >
-                        <FaWhatsapp className="w-5 h-5 mr-2" />
-                        WA Ayah
-                      </button>
-                    ) : (
-                      <button
-                        disabled
-                        className="flex-1 bg-gray-50 text-gray-400 py-3.5 px-4 rounded-xl flex items-center justify-center font-medium cursor-not-allowed border border-gray-200/60"
-                      >
-                        <span className="w-5 h-5 mr-2 flex items-center justify-center">
-                          <div className="w-3 h-0.5 bg-gray-300 rounded-lg"></div>
-                        </span>
-                        WA Ayah Kosong
-                      </button>
-                    )}
-
-                    {siswi.wa_tambahan && String(siswi.wa_tambahan).trim() !== '' && String(siswi.wa_tambahan).trim().toLowerCase() !== 'null' && String(siswi.wa_tambahan).trim() !== '-' ? (
-                      <button
-                        onClick={() => openWhatsApp(siswi.wa_tambahan)}
-                        className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3.5 px-4 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 shadow-md shadow-green-200/50 hover:shadow-lg hover:shadow-green-300/50"
-                      >
-                        <FaWhatsapp className="w-5 h-5 mr-2" />
-                        WA Ibu
-                      </button>
-                    ) : (
-                      <button
-                        disabled
-                        className="flex-1 bg-gray-50 text-gray-400 py-3.5 px-4 rounded-xl flex items-center justify-center font-medium cursor-not-allowed border border-gray-200/60"
-                      >
-                        <span className="w-5 h-5 mr-2 flex items-center justify-center">
-                          <div className="w-3 h-0.5 bg-gray-300 rounded-full"></div>
-                        </span>
-                        WA Ibu Kosong
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : hasSearched && query.trim() !== '' ? (
             <div className="text-center py-16 text-gray-500">
@@ -1073,59 +647,19 @@ function App() {
                 <Search className="w-8 h-8 text-gray-400" />
               </div>
               <p className="font-medium text-gray-600">Tidak ada hasil ditemukan</p>
-              <p className="text-sm mt-1">Coba gunakan nama yang berbeda.</p>
             </div>
           ) : (
             <div className="text-center py-12 text-gray-400">
               <p className="mb-6 text-gray-500 font-medium">Ketik nama siswi pada kolom pencarian di atas untuk memulai.</p>
 
-              <div className="mb-10 flex flex-col items-center relative z-20" ref={filterDropdownRef}>
-                <div className="inline-flex items-center bg-gray-100/80 p-1.5 rounded-full shadow-inner border border-gray-200">
-                  <button
-                    onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-                    className="bg-mazeeda-blue text-white rounded-full px-5 py-2.5 text-sm font-bold shadow-md flex items-center justify-between w-[220px] hover:bg-mazeeda-navy transition-colors active:scale-95"
-                  >
-                    <div className="flex items-center">
-                      <Calendar className="w-4 h-4 mr-3 opacity-80" />
-                      <span className="tracking-wide">Tahun {tahunAjaran}</span>
-                    </div>
-                    <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isFilterDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                </div>
-
-                {isFilterDropdownOpen && (
-                  <div className="absolute top-[calc(100%+8px)] w-[240px] bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-30 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="p-2 flex flex-col gap-1 max-h-64 overflow-y-auto">
-                      {['2026-2027', '2027-2028', '2028-2029', '2029-2030', '2030-2031', '2031-2032'].map((year) => (
-                        <button
-                          key={year}
-                          onClick={() => {
-                            setTahunAjaran(year);
-                            setIsFilterDropdownOpen(false);
-                          }}
-                          className={`px-4 py-3.5 rounded-xl text-sm font-bold text-left transition-colors flex items-center w-full ${tahunAjaran === year
-                            ? 'bg-blue-50 text-mazeeda-blue'
-                            : 'text-gray-600 hover:bg-gray-50'
-                            }`}
-                        >
-                          <span className="flex-1">Tahun {year}</span>
-                          {tahunAjaran === year && <CheckCircle className="w-5 h-5 text-mazeeda-blue" />}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Stats Section Redesign */}
+              {/* Stats Section */}
               <div className="w-full max-w-sm mx-auto px-4 mt-2 mb-8">
                 {stats.isLoading ? (
                   <div className="flex justify-center w-full py-10">
                     <div className="w-10 h-10 rounded-full border-4 border-mazeeda-blue border-t-transparent animate-spin"></div>
                   </div>
-                ) : (
+                ) : stats.data.length > 0 && (
                   <div className="flex flex-col gap-4">
-                    {/* Total Keseluruhan Card */}
                     <div className="bg-gradient-to-br from-mazeeda-blue to-blue-600 rounded-3xl p-6 shadow-lg shadow-blue-200/50 text-white relative overflow-hidden flex flex-col items-center justify-center text-center">
                       <div className="absolute -right-4 -top-4 opacity-10">
                         <Users className="w-32 h-32" />
@@ -1139,19 +673,13 @@ function App() {
                       </div>
                     </div>
 
-                    {/* Dynamic Stats Grid */}
                     <div className="grid grid-cols-2 gap-3">
                       {stats.data.map((item, idx) => {
-                        const statusLower = item.status.toLowerCase();
-
-                        // Default untuk SEMUA yang bukan aktif disamakan dengan gaya 'Boyong' (merah)
-                        let colorClass = statusLower.includes('aktif')
+                        const isAktif = item.status.toLowerCase() === 'aktif';
+                        let colorClass = isAktif
                           ? "bg-green-50/80 border-green-100 hover:bg-green-100"
                           : "bg-red-50/80 border-red-100 hover:bg-red-100";
-
-                        let countColor = statusLower.includes('aktif')
-                          ? "text-green-700"
-                          : "text-red-600";
+                        let countColor = isAktif ? "text-green-700" : "text-red-600";
 
                         return (
                           <button
@@ -1176,7 +704,6 @@ function App() {
           )}
         </div>
 
-        {/* Admin Login Trigger - Tiny text at bottom */}
         <div className="absolute bottom-4 left-0 right-0 text-center">
           <button
             onClick={() => isAdmin ? setShowAdminPanel(true) : setShowLoginModal(true)}
@@ -1185,144 +712,65 @@ function App() {
             Login Admin
           </button>
         </div>
-
+        </>
+      ) : (
+        <StatistikDaerah data={allData} />
+      )}
       </div>
 
-      {/* Login Modal */}
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-[0_-8px_30px_rgb(0,0,0,0.06)] pb-safe z-50">
+        <div className="max-w-md mx-auto h-[65px] flex items-center justify-around px-2">
+          <button 
+            onClick={() => setActiveTab('beranda')}
+            className={`outline-none focus:outline-none flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${activeTab === 'beranda' ? 'text-mazeeda-blue translate-y-[-2px]' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            <Home className={`w-6 h-6 transition-all duration-200 ${activeTab === 'beranda' ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
+            <span className={`text-[10px] mt-1 transition-all duration-200 ${activeTab === 'beranda' ? 'font-bold' : 'font-medium'}`}>Beranda</span>
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab('statistik')}
+            className={`outline-none focus:outline-none flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${activeTab === 'statistik' ? 'text-mazeeda-blue translate-y-[-2px]' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            <BarChart2 className={`w-6 h-6 transition-all duration-200 ${activeTab === 'statistik' ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
+            <span className={`text-[10px] mt-1 transition-all duration-200 ${activeTab === 'statistik' ? 'font-bold' : 'font-medium'}`}>Statistik</span>
+          </button>
+        </div>
+      </nav>
+
       {showLoginModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative">
-            <button
-              onClick={() => setShowLoginModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-              <Lock className="w-5 h-5 mr-2 text-mazeeda-blue" />
-              Login Admin
-            </h2>
+            <button onClick={() => setShowLoginModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center"><Lock className="w-5 h-5 mr-2 text-mazeeda-blue" />Login Admin</h2>
             <form onSubmit={handleAdminLogin}>
               <div className="mb-4">
-                <input
-                  type="password"
-                  placeholder="Masukkan Password"
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:border-mazeeda-blue focus:ring-1 focus:ring-mazeeda-blue transition-all"
-                  autoFocus
-                />
+                <input type="password" placeholder="Masukkan Password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:border-mazeeda-blue focus:ring-1 focus:ring-mazeeda-blue transition-all" autoFocus />
                 {loginError && <p className="text-red-500 text-xs mt-1 ml-1">{loginError}</p>}
               </div>
-              <button
-                type="submit"
-                className="w-full bg-mazeeda-blue hover:bg-mazeeda-navy text-white font-semibold py-3 rounded-xl transition-colors"
-              >
-                Masuk
-              </button>
+              <button type="submit" className="w-full bg-mazeeda-blue hover:bg-mazeeda-navy text-white font-semibold py-3 rounded-xl transition-colors">Masuk</button>
             </form>
           </div>
         </div>
       )}
 
-      {/* Unlock Secret Modal */}
       {showUnlockModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative">
-            <button
-              onClick={() => {
-                setShowUnlockModal(false);
-                setUnlockPasswordInput('');
-                setUnlockError('');
-              }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-              <Lock className="w-5 h-5 mr-2 text-mazeeda-blue" />
-              Verifikasi Password
-            </h2>
-            <p className="text-gray-500 text-sm mb-4">
-              Masukkan password admin untuk melihat data yang dirahasiakan.
-            </p>
+            <button onClick={() => { setShowUnlockModal(false); setUnlockPasswordInput(''); setUnlockError(''); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center"><Lock className="w-5 h-5 mr-2 text-mazeeda-blue" />Verifikasi Password</h2>
             <form onSubmit={handleUnlockSecret}>
               <div className="mb-4">
-                <input
-                  type="password"
-                  placeholder="Masukkan Password Admin"
-                  value={unlockPasswordInput}
-                  onChange={(e) => setUnlockPasswordInput(e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:border-mazeeda-blue focus:ring-1 focus:ring-mazeeda-blue transition-all"
-                  autoFocus
-                />
+                <input type="password" placeholder="Masukkan Password Admin" value={unlockPasswordInput} onChange={(e) => setUnlockPasswordInput(e.target.value)} className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:border-mazeeda-blue focus:ring-1 focus:ring-mazeeda-blue transition-all" autoFocus />
                 {unlockError && <p className="text-red-500 text-xs mt-1 ml-1">{unlockError}</p>}
               </div>
-              <button
-                type="submit"
-                className="w-full bg-mazeeda-blue hover:bg-mazeeda-navy text-white font-semibold py-3 rounded-xl transition-colors"
-              >
-                Tampilkan Data
-              </button>
+              <button type="submit" className="w-full bg-mazeeda-blue hover:bg-mazeeda-navy text-white font-semibold py-3 rounded-xl transition-colors">Tampilkan Data</button>
             </form>
           </div>
         </div>
       )}
-
-      {/* Custom Alert/Confirm Dialog */}
-      {dialog.isOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl relative animate-in fade-in zoom-in duration-200">
-
-            {/* Icon based on type */}
-            <div className="flex justify-center mb-5">
-              {dialog.type === 'confirm_delete' && <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-red-500 border-4 border-white shadow-inner"><AlertTriangle size={36} strokeWidth={2.5} /></div>}
-              {dialog.type === 'confirm_upload' && <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center text-mazeeda-blue border-4 border-white shadow-inner"><Upload size={36} strokeWidth={2.5} /></div>}
-              {dialog.type === 'alert_success' && <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center text-green-500 border-4 border-white shadow-inner"><CheckCircle size={36} strokeWidth={2.5} /></div>}
-              {dialog.type === 'alert_error' && <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-red-500 border-4 border-white shadow-inner"><XCircle size={36} strokeWidth={2.5} /></div>}
-            </div>
-
-            <h2 className="text-xl font-bold text-center text-gray-800 mb-3">
-              {dialog.title}
-            </h2>
-            <p className="text-center text-gray-600 mb-8 text-sm leading-relaxed">
-              {dialog.message}
-            </p>
-
-            {dialog.type.startsWith('confirm_') ? (
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setDialog({ ...dialog, isOpen: false });
-                    if (fileInputRef.current) fileInputRef.current.value = '';
-                  }}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3.5 rounded-xl transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={() => {
-                    setDialog({ ...dialog, isOpen: false });
-                    if (dialog.onConfirm) dialog.onConfirm();
-                  }}
-                  className={`flex-1 font-bold py-3.5 rounded-xl transition-colors text-white ${dialog.type === 'confirm_delete' ? 'bg-red-500 hover:bg-red-600' : 'bg-mazeeda-blue hover:bg-mazeeda-navy'}`}
-                >
-                  Lanjutkan
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setDialog({ ...dialog, isOpen: false })}
-                className="w-full bg-mazeeda-blue hover:bg-mazeeda-navy text-white font-bold py-3.5 rounded-xl transition-colors"
-              >
-                Tutup
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Install App Banner */}
+      
       {showInstallPrompt && (
         <div className="fixed bottom-4 left-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-5 duration-500">
           <div className="max-w-md mx-auto bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-blue-100 p-4 flex items-center justify-between">
@@ -1336,27 +784,14 @@ function App() {
               </div>
             </div>
             <div className="flex items-center gap-2 ml-2">
-              <button
-                onClick={() => setShowInstallPrompt(false)}
-                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleInstallClick}
-                className="bg-mazeeda-blue hover:bg-mazeeda-navy text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-transform active:scale-95 shadow-sm whitespace-nowrap flex items-center"
-              >
-                <Download className="w-3 h-3 mr-1.5" />
-                Install
-              </button>
+              <button onClick={() => setShowInstallPrompt(false)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"><X className="w-4 h-4" /></button>
+              <button onClick={handleInstallClick} className="bg-mazeeda-blue hover:bg-mazeeda-navy text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-transform active:scale-95 shadow-sm whitespace-nowrap flex items-center"><Download className="w-3 h-3 mr-1.5" />Install</button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
 
 export default App;
-
