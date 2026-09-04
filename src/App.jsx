@@ -132,10 +132,13 @@ const StatistikDaerah = ({ data }) => {
 
 function App() {
   const [query, setQuery] = useState('');
-  const [allData, setAllData] = useState([]);
+  const [allData, setAllData] = useState(() => {
+    const cached = localStorage.getItem('mazeeda_cached_data');
+    return cached ? JSON.parse(cached) : [];
+  });
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(() => !localStorage.getItem('mazeeda_cached_data'));
   const [activeTab, setActiveTab] = useState('beranda');
   
 
@@ -173,11 +176,17 @@ function App() {
   const [unlockPasswordInput, setUnlockPasswordInput] = useState('');
   const [unlockError, setUnlockError] = useState('');
 
-  const [stats, setStats] = useState({ data: [], isLoading: true });
+  const [stats, setStats] = useState(() => {
+    const cachedStats = localStorage.getItem('mazeeda_cached_stats');
+    return cachedStats ? JSON.parse(cachedStats) : { data: [], isLoading: true };
+  });
 
   const fetchAllSheets = async () => {
-    setIsLoading(true);
-    setStats({ data: [], isLoading: true });
+    const hasCache = !!localStorage.getItem('mazeeda_cached_data');
+    if (!hasCache) {
+      setIsLoading(true);
+      setStats({ data: [], isLoading: true });
+    }
     try {
       let combined = [];
       for (const sheet of SHEET_URLS) {
@@ -228,6 +237,11 @@ function App() {
         .sort((a,b) => b.count - a.count);
         
       setStats({ data: statsArray, isLoading: false });
+      
+      // Simpan ke cache
+      localStorage.setItem('mazeeda_cached_data', JSON.stringify(combined));
+      localStorage.setItem('mazeeda_cached_stats', JSON.stringify({ data: statsArray, isLoading: false }));
+      
     } catch (err) {
       console.error("Error fetching Google Sheets:", err);
       setStats({ data: [], isLoading: false });
