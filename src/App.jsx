@@ -192,7 +192,8 @@ function App() {
       for (const sheet of SHEET_URLS) {
         if (!sheet.url || sheet.url.includes('PASTE_LINK_CSV')) continue;
         
-        const response = await fetch(sheet.url);
+        const noCacheUrl = sheet.url + '&_t=' + new Date().getTime();
+        const response = await fetch(noCacheUrl, { cache: 'no-store' });
         const csvText = await response.text();
         
         await new Promise((resolve) => {
