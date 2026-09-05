@@ -95,7 +95,7 @@ const SHEET_URLS = [
 ];
 // ==========================================
 
-const StatistikDaerah = ({ data }) => {
+const StatistikDaerah = ({ data, onSelectStudent }) => {
   const [expandedDaerah, setExpandedDaerah] = useState(null);
 
   const daerahMap = data.reduce((acc, curr) => {
