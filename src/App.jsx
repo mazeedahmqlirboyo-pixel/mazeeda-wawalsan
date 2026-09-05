@@ -838,25 +838,27 @@ function App() {
         )}
 
         {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-[0_-8px_30px_rgb(0,0,0,0.06)] pb-safe z-50">
-        <div className="max-w-md mx-auto h-[65px] flex items-center justify-around px-2">
-          <button 
-            onClick={() => setActiveTab('beranda')}
-            className={`outline-none focus:outline-none flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${activeTab === 'beranda' ? 'text-mazeeda-blue translate-y-[-2px]' : 'text-gray-400 hover:text-gray-600'}`}
-          >
-            <Home className={`w-6 h-6 transition-all duration-200 ${activeTab === 'beranda' ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
-            <span className={`text-[10px] mt-1 transition-all duration-200 ${activeTab === 'beranda' ? 'font-bold' : 'font-medium'}`}>Beranda</span>
-          </button>
-          
-          <button 
-            onClick={() => setActiveTab('statistik')}
-            className={`outline-none focus:outline-none flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${activeTab === 'statistik' ? 'text-mazeeda-blue translate-y-[-2px]' : 'text-gray-400 hover:text-gray-600'}`}
-          >
-            <BarChart2 className={`w-6 h-6 transition-all duration-200 ${activeTab === 'statistik' ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
-            <span className={`text-[10px] mt-1 transition-all duration-200 ${activeTab === 'statistik' ? 'font-bold' : 'font-medium'}`}>Statistik</span>
-          </button>
-        </div>
-      </nav>
+      {!selectedStudent && (
+        <nav className="fixed bottom-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-[0_-8px_30px_rgb(0,0,0,0.06)] pb-safe z-50">
+          <div className="max-w-md mx-auto h-[65px] flex items-center justify-around px-2">
+            <button 
+              onClick={() => setActiveTab('beranda')}
+              className={`outline-none focus:outline-none flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${activeTab === 'beranda' ? 'text-mazeeda-blue translate-y-[-2px]' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <Home className={`w-6 h-6 transition-all duration-200 ${activeTab === 'beranda' ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
+              <span className={`text-[10px] mt-1 transition-all duration-200 ${activeTab === 'beranda' ? 'font-bold' : 'font-medium'}`}>Beranda</span>
+            </button>
+            
+            <button 
+              onClick={() => setActiveTab('statistik')}
+              className={`outline-none focus:outline-none flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${activeTab === 'statistik' ? 'text-mazeeda-blue translate-y-[-2px]' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <BarChart2 className={`w-6 h-6 transition-all duration-200 ${activeTab === 'statistik' ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
+              <span className={`text-[10px] mt-1 transition-all duration-200 ${activeTab === 'statistik' ? 'font-bold' : 'font-medium'}`}>Statistik</span>
+            </button>
+          </div>
+        </nav>
+      )}
 
       {showLoginModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
