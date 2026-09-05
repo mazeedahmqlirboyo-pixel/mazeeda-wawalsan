@@ -175,6 +175,9 @@ const StatistikDaerah = ({ data }) => {
                               )}
                             </div>
                           </div>
+                          <button onClick={(e) => { e.stopPropagation(); onSelectStudent(student); }} className="w-9 h-9 rounded-full bg-blue-50/50 flex items-center justify-center text-mazeeda-blue hover:bg-blue-100 transition-colors border border-blue-100 ml-auto flex-shrink-0 active:scale-95">
+                            <Eye className="w-4 h-4" />
+                          </button>
                         </div>
                       );
                     })}
@@ -196,6 +199,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('beranda');
+  const [selectedStudent, setSelectedStudent] = useState(null);
   
 
   const [hasSearched, setHasSearched] = useState(false);
@@ -413,124 +417,17 @@ function App() {
   };
 
   
-  if (isInitialLoading) {
+  const StudentCardUI = ({ siswi }) => {
+    const isBoyong = siswi.status_database !== 'Aktif';
+    const cardClass = isBoyong 
+      ? "bg-red-50 border border-red-200 p-5 rounded-3xl shadow-[0_8px_30px_rgb(255,0,0,0.06)] hover:shadow-[0_8px_30px_rgb(255,0,0,0.1)] transition-all duration-300"
+      : "bg-white border border-gray-100 p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300";
+    const badgeClass = isBoyong 
+      ? "bg-red-100 text-red-700 border-red-200" 
+      : "bg-blue-50 text-mazeeda-blue border-blue-100";
+
     return (
-      <div className="min-h-screen bg-mazeeda-navy flex flex-col items-center justify-center p-6 text-white font-sans">
-        <div className="w-28 h-28 bg-white rounded-3xl p-3 shadow-[0_10px_40px_rgba(0,0,0,0.3)] mb-8 relative">
-          <div className="absolute inset-0 bg-white rounded-3xl animate-ping opacity-20"></div>
-          <img src={appLogo} alt="Mazeeda Logo" className="w-full h-full object-contain relative z-10" />
-        </div>
-        <div className="flex flex-col items-center gap-5">
-          <div className="w-10 h-10 rounded-full border-4 border-white/20 border-t-white animate-spin"></div>
-          <div className="text-center">
-            <h2 className="text-xl font-black tracking-widest mb-2">SINKRONISASI DATA</h2>
-            
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex justify-center pb-safe font-sans">
-      <div className="w-full max-w-md bg-white min-h-screen shadow-xl relative pb-10">
-
-        {/* Header */}
-        <div className={`bg-mazeeda-blue text-white pt-10 ${activeTab === 'beranda' ? 'pb-12' : 'pb-6'} px-6 rounded-b-[2.5rem] relative shadow-md`}>
-          <div className="flex flex-col items-center">
-            <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-4 border-2 border-white/60 shadow-inner overflow-hidden">
-              <img src={appLogo} alt="Logo MAZEEDA" className="w-full h-full object-cover bg-white" />
-            </div>
-            <h1 className="text-xl font-bold text-center leading-tight mt-2">
-              INFORMASI MAZEEDA
-            </h1>
-            {activeTab === 'statistik' && (
-              <h2 className="text-xl font-bold text-blue-100 text-center mt-1 tracking-wide">Statistik Daerah Siswi</h2>
-            )}
-          </div>
-        </div>
-
-        {activeTab === 'beranda' ? (
-        <>
-        {/* Search Bar */}
-        <div className="px-6 -mt-6 sticky top-4 z-10">
-          <div className="bg-white rounded-2xl shadow-lg flex flex-col border border-gray-100 overflow-hidden">
-            <div className="flex items-center px-4 py-3 relative">
-              <Search className="text-gray-400 w-5 h-5 mr-3 flex-shrink-0" />
-              <input
-                type="text"
-                placeholder="Cari nama, asal, domisili..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="flex-1 outline-none text-gray-700 bg-transparent placeholder-gray-400 min-w-0"
-              />
-              {query && (
-                <button
-                  onClick={() => setQuery('')}
-                  className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full transition-colors flex-shrink-0 ml-2"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Admin Panel */}
-        {isAdmin && showAdminPanel && (
-          <div className="px-6 mt-6 mb-2">
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 relative">
-              <button
-                onClick={() => setShowAdminPanel(false)}
-                className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              <button
-                onClick={async () => await supabase.auth.signOut()}
-                className="absolute top-3 right-10 text-xs font-bold text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 px-2 py-1 rounded-md transition-colors"
-              >
-                Logout
-              </button>
-              <h3 className="font-bold text-mazeeda-blue mb-2 flex items-center">
-                <Lock className="w-4 h-4 mr-2" /> Panel Admin
-              </h3>
-              <p className="text-xs text-gray-600">Aplikasi saat ini otomatis terhubung dengan Google Sheets. Tidak perlu upload/hapus data dari sini.</p>
-            </div>
-          </div>
-        )}
-
-        {/* Main Content */}
-        <div className="px-6 py-6">
-          {isLoading ? (
-            <div className="flex flex-col gap-4">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="animate-pulse bg-white border border-gray-100 p-5 rounded-2xl shadow-sm flex flex-col gap-3">
-                  <div className="w-24 h-6 bg-blue-100 rounded-lg"></div>
-                  <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-                  <div className="flex gap-2 mt-2">
-                    <div className="h-10 bg-green-100 rounded-xl w-full"></div>
-                    <div className="h-10 bg-green-100 rounded-xl w-full"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : results.length > 0 ? (
-            <div className="flex flex-col gap-5">
-              <div className="text-sm text-gray-500 mb-1 px-1 flex justify-between items-center">
-                <span>Ditemukan {results.length} hasil</span>
-              </div>
-              {results.map((siswi) => {
-                const isBoyong = siswi.status_database !== 'Aktif';
-                const cardClass = isBoyong 
-                  ? "bg-red-50 border border-red-200 p-5 rounded-3xl shadow-[0_8px_30px_rgb(255,0,0,0.06)] hover:shadow-[0_8px_30px_rgb(255,0,0,0.1)] transition-all duration-300"
-                  : "bg-white border border-gray-100 p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300";
-                const badgeClass = isBoyong 
-                  ? "bg-red-100 text-red-700 border-red-200" 
-                  : "bg-blue-50 text-mazeeda-blue border-blue-100";
-
-                return (
-                  <div key={siswi.id} className={cardClass}>
+      <div className={cardClass}>
                     {/* Header Card */}
                     <div className="flex items-center gap-4 mb-5">
                       <div className="w-16 h-16 rounded-full bg-blue-50 border-2 border-white shadow-sm overflow-hidden flex-shrink-0 flex items-center justify-center ring-2 ring-gray-50">
@@ -723,6 +620,127 @@ function App() {
                       )}
                     </div>
                   </div>
+    );
+  };
+
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen bg-mazeeda-navy flex flex-col items-center justify-center p-6 text-white font-sans">
+        <div className="w-28 h-28 bg-white rounded-3xl p-3 shadow-[0_10px_40px_rgba(0,0,0,0.3)] mb-8 relative">
+          <div className="absolute inset-0 bg-white rounded-3xl animate-ping opacity-20"></div>
+          <img src={appLogo} alt="Mazeeda Logo" className="w-full h-full object-contain relative z-10" />
+        </div>
+        <div className="flex flex-col items-center gap-5">
+          <div className="w-10 h-10 rounded-full border-4 border-white/20 border-t-white animate-spin"></div>
+          <div className="text-center">
+            <h2 className="text-xl font-black tracking-widest mb-2">SINKRONISASI DATA</h2>
+            
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex justify-center pb-safe font-sans">
+      <div className="w-full max-w-md bg-white min-h-screen shadow-xl relative pb-10">
+
+        {/* Header */}
+        <div className={`bg-mazeeda-blue text-white pt-10 ${activeTab === 'beranda' ? 'pb-12' : 'pb-6'} px-6 rounded-b-[2.5rem] relative shadow-md`}>
+          <div className="flex flex-col items-center">
+            <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-4 border-2 border-white/60 shadow-inner overflow-hidden">
+              <img src={appLogo} alt="Logo MAZEEDA" className="w-full h-full object-cover bg-white" />
+            </div>
+            <h1 className="text-xl font-bold text-center leading-tight mt-2">
+              INFORMASI MAZEEDA
+            </h1>
+            {activeTab === 'statistik' && (
+              <h2 className="text-xl font-bold text-blue-100 text-center mt-1 tracking-wide">Statistik Daerah Siswi</h2>
+            )}
+          </div>
+        </div>
+
+        {activeTab === 'beranda' ? (
+        <>
+        {/* Search Bar */}
+        <div className="px-6 -mt-6 sticky top-4 z-10">
+          <div className="bg-white rounded-2xl shadow-lg flex flex-col border border-gray-100 overflow-hidden">
+            <div className="flex items-center px-4 py-3 relative">
+              <Search className="text-gray-400 w-5 h-5 mr-3 flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Cari nama, asal, domisili..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="flex-1 outline-none text-gray-700 bg-transparent placeholder-gray-400 min-w-0"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery('')}
+                  className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full transition-colors flex-shrink-0 ml-2"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Admin Panel */}
+        {isAdmin && showAdminPanel && (
+          <div className="px-6 mt-6 mb-2">
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 relative">
+              <button
+                onClick={() => setShowAdminPanel(false)}
+                className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <button
+                onClick={async () => await supabase.auth.signOut()}
+                className="absolute top-3 right-10 text-xs font-bold text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 px-2 py-1 rounded-md transition-colors"
+              >
+                Logout
+              </button>
+              <h3 className="font-bold text-mazeeda-blue mb-2 flex items-center">
+                <Lock className="w-4 h-4 mr-2" /> Panel Admin
+              </h3>
+              <p className="text-xs text-gray-600">Aplikasi saat ini otomatis terhubung dengan Google Sheets. Tidak perlu upload/hapus data dari sini.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div className="px-6 py-6">
+          {isLoading ? (
+            <div className="flex flex-col gap-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="animate-pulse bg-white border border-gray-100 p-5 rounded-2xl shadow-sm flex flex-col gap-3">
+                  <div className="w-24 h-6 bg-blue-100 rounded-lg"></div>
+                  <div className="h-5 bg-gray-200 rounded w-3/4"></div>
+                  <div className="flex gap-2 mt-2">
+                    <div className="h-10 bg-green-100 rounded-xl w-full"></div>
+                    <div className="h-10 bg-green-100 rounded-xl w-full"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : results.length > 0 ? (
+            <div className="flex flex-col gap-5">
+              <div className="text-sm text-gray-500 mb-1 px-1 flex justify-between items-center">
+                <span>Ditemukan {results.length} hasil</span>
+              </div>
+              {results.map((siswi) => {
+                const isBoyong = siswi.status_database !== 'Aktif';
+                const cardClass = isBoyong 
+                  ? "bg-red-50 border border-red-200 p-5 rounded-3xl shadow-[0_8px_30px_rgb(255,0,0,0.06)] hover:shadow-[0_8px_30px_rgb(255,0,0,0.1)] transition-all duration-300"
+                  : "bg-white border border-gray-100 p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300";
+                const badgeClass = isBoyong 
+                  ? "bg-red-100 text-red-700 border-red-200" 
+                  : "bg-blue-50 text-mazeeda-blue border-blue-100";
+
+                return (
+                  <div key={siswi.id}><StudentCardUI siswi={siswi} /></div>
                 );
               })}
             </div>
@@ -799,11 +817,27 @@ function App() {
         </div>
         </>
       ) : (
-        <StatistikDaerah data={allData} />
+        <StatistikDaerah data={allData} onSelectStudent={setSelectedStudent} />
       )}
       </div>
 
-      {/* Bottom Navigation */}
+      
+        {/* Modal Detail Siswi */}
+        {selectedStudent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl relative no-scrollbar">
+              <button 
+                onClick={() => setSelectedStudent(null)}
+                className="absolute top-2 right-2 bg-white/90 hover:bg-white text-gray-800 p-2 rounded-full z-20 shadow-md transition-all active:scale-95"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <StudentCardUI siswi={selectedStudent} />
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Navigation */}
       <nav className="fixed bottom-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-[0_-8px_30px_rgb(0,0,0,0.06)] pb-safe z-50">
         <div className="max-w-md mx-auto h-[65px] flex items-center justify-around px-2">
           <button 
