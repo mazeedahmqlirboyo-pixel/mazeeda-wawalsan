@@ -96,35 +96,94 @@ const SHEET_URLS = [
 // ==========================================
 
 const StatistikDaerah = ({ data }) => {
-  const daerahCount = data.reduce((acc, curr) => {
+  const [expandedDaerah, setExpandedDaerah] = useState(null);
+
+  const daerahMap = data.reduce((acc, curr) => {
     const daerah = curr['DAERAH'] ? curr['DAERAH'].trim().toUpperCase() : 'TIDAK DIKETAHUI';
     if (daerah && daerah !== '-') {
-      acc[daerah] = (acc[daerah] || 0) + 1;
+      if (!acc[daerah]) acc[daerah] = [];
+      acc[daerah].push(curr);
     }
     return acc;
   }, {});
 
-  const sortedDaerah = Object.entries(daerahCount)
-    .map(([daerah, count]) => ({ daerah, count }))
+  const sortedDaerah = Object.entries(daerahMap)
+    .map(([daerah, students]) => ({ daerah, count: students.length, students }))
     .sort((a, b) => b.count - a.count);
 
   return (
-    <div className="max-w-md mx-auto w-full bg-white min-h-screen pt-4 pb-24">
-      <div className="px-6 mb-4">
-        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Statistik Daerah</h2>
-        <p className="text-sm text-gray-500 mt-1">Persebaran asal daerah siswi</p>
-      </div>
-      
-      <div className="mt-2 border-t border-gray-100">
-        {sortedDaerah.map((item, idx) => (
-          <div key={idx} className="flex items-center justify-between py-4 px-6 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-            <div className="flex items-center gap-4">
-              <span className="w-6 text-left font-bold text-gray-400 text-sm">{idx + 1}</span>
-              <span className="font-semibold text-gray-800 text-base">{item.daerah}</span>
+    <div className="max-w-md mx-auto w-full bg-white min-h-screen pt-2 pb-24">
+      <div className="border-t border-gray-100">
+        {sortedDaerah.map((item, idx) => {
+          const isExpanded = expandedDaerah === item.daerah;
+          return (
+            <div key={idx} className="border-b border-gray-100 flex flex-col">
+              <div 
+                onClick={() => setExpandedDaerah(isExpanded ? null : item.daerah)}
+                className="flex items-center justify-between py-4 px-6 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="w-6 text-left font-bold text-gray-400 text-sm">{idx + 1}</span>
+                  <span className="font-semibold text-gray-800 text-base">{item.daerah}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-white bg-mazeeda-blue px-3 py-1 rounded-full shadow-sm">{item.count}</span>
+                  <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                </div>
+              </div>
+              
+              {/* Accordion Content */}
+              {isExpanded && (
+                <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="space-y-3">
+                    {item.students.map((student, i) => {
+                      const isAktif = !student.status_database || student.status_database.toUpperCase() === 'AKTIF';
+                      return (
+                        <div key={i} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+                            {student['FOTO URL'] && student['FOTO URL'].trim() !== '' && student['FOTO URL'] !== '-' ? (
+                              <>
+                                <img 
+                                  src={formatImageUrl(student['FOTO URL'])} 
+                                  alt={student['NAMA LENGKAP']} 
+                                  className="w-full h-full object-cover absolute z-10" 
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                                <div className="w-full h-full flex items-center justify-center bg-gray-50 absolute z-0">
+                                  <User className="w-5 h-5 text-gray-400" />
+                                </div>
+                              </>
+                            ) : (
+                              <User className="w-5 h-5 text-gray-400" />
+                            )}
+                          </div>
+                          <div className="flex flex-col">
+                            <p className={`font-bold text-sm leading-tight ${!isAktif ? 'text-red-600' : 'text-gray-800'}`}>
+                              {student['NAMA LENGKAP']}
+                            </p>
+                            <div className="mt-1.5 flex flex-wrap gap-2">
+                              <span className="text-[11px] font-bold tracking-wide text-mazeeda-blue bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
+                                {student['BAGIAN'] || '-'}
+                              </span>
+                              {!isAktif && (
+                                <span className="text-[11px] font-bold tracking-wide text-red-600 bg-red-50 px-2.5 py-0.5 rounded-md border border-red-100 uppercase">
+                                  {student.status_database}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-            <span className="text-sm font-bold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">{item.count}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -365,7 +424,7 @@ function App() {
           <div className="w-10 h-10 rounded-full border-4 border-white/20 border-t-white animate-spin"></div>
           <div className="text-center">
             <h2 className="text-xl font-black tracking-widest mb-2">SINKRONISASI DATA</h2>
-            <p className="text-blue-200 text-sm max-w-[260px] mx-auto font-medium leading-relaxed">Menyiapkan data santri terbaru langsung dari server. Mohon tunggu...</p>
+            
           </div>
         </div>
       </div>
@@ -377,7 +436,7 @@ function App() {
       <div className="w-full max-w-md bg-white min-h-screen shadow-xl relative pb-10">
 
         {/* Header */}
-        <div className="bg-mazeeda-blue text-white pt-10 pb-12 px-6 rounded-b-[2.5rem] relative shadow-md">
+        <div className={`bg-mazeeda-blue text-white pt-10 ${activeTab === 'beranda' ? 'pb-12' : 'pb-6'} px-6 rounded-b-[2.5rem] relative shadow-md`}>
           <div className="flex flex-col items-center">
             <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-4 border-2 border-white/60 shadow-inner overflow-hidden">
               <img src={appLogo} alt="Logo MAZEEDA" className="w-full h-full object-cover bg-white" />
@@ -385,6 +444,9 @@ function App() {
             <h1 className="text-xl font-bold text-center leading-tight mt-2">
               INFORMASI MAZEEDA
             </h1>
+            {activeTab === 'statistik' && (
+              <h2 className="text-xl font-bold text-blue-100 text-center mt-1 tracking-wide">Statistik Daerah Siswi</h2>
+            )}
           </div>
         </div>
 
