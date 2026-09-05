@@ -112,7 +112,7 @@ const StatistikDaerah = ({ data, onSelectStudent }) => {
     .sort((a, b) => b.count - a.count);
 
   return (
-    <div className="max-w-md mx-auto w-full bg-white min-h-screen pt-2 pb-24">
+    <div className="max-w-md mx-auto w-full bg-white min-h-screen pt-2 pb-32">
       <div className="border-t border-gray-100">
         {sortedDaerah.map((item, idx) => {
           const isExpanded = expandedDaerah === item.daerah;
@@ -643,7 +643,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex justify-center pb-safe font-sans">
-      <div className="w-full max-w-md bg-white min-h-screen shadow-xl relative pb-10">
+      <div className="w-full max-w-md bg-white min-h-screen shadow-xl relative pb-32">
 
         {/* Header */}
         <div className={`bg-mazeeda-blue text-white pt-10 ${activeTab === 'beranda' ? 'pb-12' : 'pb-6'} px-6 rounded-b-[2.5rem] relative shadow-md`}>
@@ -839,8 +839,9 @@ function App() {
 
         {/* Bottom Navigation */}
       {!selectedStudent && (
-        <nav className="fixed bottom-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-[0_-8px_30px_rgb(0,0,0,0.06)] pb-safe z-50">
-          <div className="max-w-md mx-auto h-[65px] flex items-center justify-around px-2">
+        <div className="fixed bottom-6 left-0 right-0 z-40 px-6 flex justify-center pointer-events-none pb-safe">
+          <nav className="w-full max-w-[340px] bg-white/90 backdrop-blur-xl border border-white/60 shadow-[0_12px_40px_rgba(0,0,0,0.12)] rounded-full pointer-events-auto overflow-hidden">
+            <div className="h-[70px] flex items-center justify-around px-4">
             <button 
               onClick={() => setActiveTab('beranda')}
               className={`outline-none focus:outline-none flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${activeTab === 'beranda' ? 'text-mazeeda-blue translate-y-[-2px]' : 'text-gray-400 hover:text-gray-600'}`}
@@ -858,6 +859,7 @@ function App() {
             </button>
           </div>
         </nav>
+        </div>
       )}
 
       {showLoginModal && (
