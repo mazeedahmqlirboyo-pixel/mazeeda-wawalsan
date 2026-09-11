@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, Lock, CheckCircle, XCircle, AlertTriangle, Download, MapPin, Calendar, Users, Home, BookOpen, Map, User, Heart, Eye, EyeOff, ChevronDown, Moon, Sun, BarChart2 } from 'lucide-react';
+import { Search, X, Lock, CheckCircle, XCircle, AlertTriangle, Download, MapPin, Calendar, Users, Home, BookOpen, Map, User, Heart, Eye, EyeOff, ChevronDown, Moon, Sun, BarChart2 , PieChart} from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import appLogo from './assets/logo.png';
 import Papa from 'papaparse';
@@ -374,6 +374,158 @@ const StatistikBagian = ({ data, onSelectStudent }) => {
                             <div className="mt-1.5 flex flex-wrap gap-2">
                               <span className="text-[11px] font-bold tracking-wide text-mazeeda-blue bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
                                 {student['DAERAH'] ? String(student['DAERAH']).trim().toUpperCase() : '-'}
+                              </span>
+                              {!isAktif && (
+                                <span className="text-[11px] font-bold tracking-wide text-red-600 bg-red-50 px-2.5 py-0.5 rounded-md border border-red-100 uppercase">
+                                  {student.status_database}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button onClick={(e) => { e.stopPropagation(); onSelectStudent(student); }} className="w-9 h-9 rounded-full bg-blue-50/50 flex items-center justify-center text-mazeeda-blue hover:bg-blue-100 transition-colors border border-blue-100 ml-auto flex-shrink-0 active:scale-95">
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+
+const StatistikKategori = ({ data, onSelectStudent }) => {
+  const [activeKategori, setActiveKategori] = useState('DOMISILI'); 
+  const [expandedItem, setExpandedItem] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const groupedMap = data.reduce((acc, curr) => {
+    let key = curr[activeKategori] ? curr[activeKategori].trim().toUpperCase() : 'TIDAK DIKETAHUI';
+    if (key === '' || key === '-') key = 'TIDAK DIKETAHUI';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(curr);
+    return acc;
+  }, {});
+
+  const sortedItems = Object.entries(groupedMap)
+    .map(([name, students]) => ({ 
+      name, 
+      count: students.length, 
+      students: [...students].sort((a, b) => (a['NAMA LENGKAP'] || '').localeCompare(b['NAMA LENGKAP'] || '')) 
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const filteredItems = sortedItems.filter(item => 
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="max-w-md mx-auto w-full bg-white min-h-screen pb-32">
+      <div className="px-6 pt-4 pb-4 sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm flex flex-col gap-4">
+        {/* Toggle / Segmented Control */}
+        <div className="flex bg-gray-100 p-1 rounded-xl">
+          <button 
+            onClick={() => { setActiveKategori('DOMISILI'); setExpandedItem(null); setSearchQuery(''); }}
+            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeKategori === 'DOMISILI' ? 'bg-white text-mazeeda-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Domisili
+          </button>
+          <button 
+            onClick={() => { setActiveKategori('STATUS TAHFIZ'); setExpandedItem(null); setSearchQuery(''); }}
+            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeKategori === 'STATUS TAHFIZ' ? 'bg-white text-mazeeda-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Status Tahfiz
+          </button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="bg-gray-50 rounded-2xl flex flex-col border border-gray-100 overflow-hidden focus-within:border-blue-200 focus-within:ring-2 focus-within:ring-blue-50 transition-all">
+          <div className="flex items-center px-4 py-3 relative">
+            <Search className="text-gray-400 w-5 h-5 mr-3 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder={`Cari ${activeKategori === 'DOMISILI' ? 'domisili' : 'status tahfiz'}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 outline-none text-gray-700 bg-transparent placeholder-gray-400 min-w-0"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-full transition-colors flex-shrink-0 ml-2"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        {filteredItems.length === 0 && (
+          <div className="text-center py-10 text-gray-500">Data tidak ditemukan.</div>
+        )}
+        {filteredItems.map((item, idx) => {
+          const isExpanded = expandedItem === item.name;
+          return (
+            <div key={idx} className="border-b border-gray-100 flex flex-col">
+              <div 
+                onClick={() => setExpandedItem(isExpanded ? null : item.name)}
+                className="flex items-center justify-between py-4 px-6 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="w-6 text-left font-bold text-gray-400 text-sm">{idx + 1}</span>
+                  <span className="font-semibold text-gray-800 text-base">{item.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-white bg-mazeeda-blue px-3 py-1 rounded-full shadow-sm">{item.count}</span>
+                  <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                </div>
+              </div>
+              
+              {/* Accordion Content */}
+              {isExpanded && (
+                <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="space-y-3">
+                    {item.students.map((student, i) => {
+                      const isAktif = !student.status_database || student.status_database.toUpperCase() === 'AKTIF';
+                      return (
+                        <div key={i} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+                            {student['FOTO URL'] && student['FOTO URL'].trim() !== '' && student['FOTO URL'] !== '-' ? (
+                              <>
+                                <img 
+                                  src={formatImageUrl(student['FOTO URL'])} 
+                                  alt={student['NAMA LENGKAP']} 
+                                  className="w-full h-full object-cover absolute z-10" 
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                                <div className="w-full h-full flex items-center justify-center bg-gray-50 absolute z-0">
+                                  <User className="w-5 h-5 text-gray-400" />
+                                </div>
+                              </>
+                            ) : (
+                              <User className="w-5 h-5 text-gray-400" />
+                            )}
+                          </div>
+                          <div className="flex flex-col flex-1">
+                            <p className={`font-bold text-sm leading-tight ${!isAktif ? 'text-red-600' : 'text-gray-800'}`}>
+                              {student['NAMA LENGKAP']}
+                            </p>
+                            <div className="mt-1.5 flex flex-wrap gap-2">
+                              <span className="text-[11px] font-bold tracking-wide text-mazeeda-blue bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
+                                {activeKategori === 'DOMISILI' ? 
+                                  (student['STATUS TAHFIZ'] ? String(student['STATUS TAHFIZ']).trim().toUpperCase() : '-') 
+                                  : (student['DOMISILI'] ? String(student['DOMISILI']).trim().toUpperCase() : '-')}
                               </span>
                               {!isAktif && (
                                 <span className="text-[11px] font-bold tracking-wide text-red-600 bg-red-50 px-2.5 py-0.5 rounded-md border border-red-100 uppercase">
@@ -867,6 +1019,9 @@ function App() {
             {activeTab === 'bagian' && (
               <h2 className="text-xl font-bold text-blue-100 text-center mt-1 tracking-wide">Data Bagian</h2>
             )}
+            {activeTab === 'kategori' && (
+              <h2 className="text-xl font-bold text-blue-100 text-center mt-1 tracking-wide">Data Kategori</h2>
+            )}
           </div>
         </div>
 
@@ -1029,6 +1184,8 @@ function App() {
         </>
       ) : activeTab === 'bagian' ? (
         <StatistikBagian data={allData} onSelectStudent={setSelectedStudent} />
+      ) : activeTab === 'kategori' ? (
+        <StatistikKategori data={allData} onSelectStudent={setSelectedStudent} />
       ) : (
         <StatistikDaerah data={allData} onSelectStudent={setSelectedStudent} />
       )}
@@ -1053,7 +1210,7 @@ function App() {
         {/* Bottom Navigation */}
       {!selectedStudent && (
         <div className="fixed bottom-6 left-0 right-0 z-40 px-6 flex justify-center pointer-events-none pb-safe">
-          <nav className="w-full max-w-[360px] bg-white/90 backdrop-blur-xl border border-white/60 shadow-[0_12px_40px_rgba(0,0,0,0.12)] rounded-full pointer-events-auto overflow-hidden">
+          <nav className="w-full max-w-[380px] bg-white/90 backdrop-blur-xl border border-white/60 shadow-[0_12px_40px_rgba(0,0,0,0.12)] rounded-full pointer-events-auto overflow-hidden">
             <div className="h-[70px] flex items-center justify-around px-4">
             <button 
               onClick={() => setActiveTab('beranda')}
@@ -1077,6 +1234,14 @@ function App() {
             >
               <BarChart2 className={`w-6 h-6 transition-all duration-200 ${activeTab === 'statistik' ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
               <span className={`text-[10px] mt-1 transition-all duration-200 ${activeTab === 'statistik' ? 'font-bold' : 'font-medium'}`}>Statistik</span>
+            </button>
+            
+            <button 
+              onClick={() => setActiveTab('kategori')}
+              className={`outline-none focus:outline-none flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${activeTab === 'kategori' ? 'text-mazeeda-blue translate-y-[-2px]' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <PieChart className={`w-6 h-6 transition-all duration-200 ${activeTab === 'kategori' ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
+              <span className={`text-[10px] mt-1 transition-all duration-200 ${activeTab === 'kategori' ? 'font-bold' : 'font-medium'}`}>Kategori</span>
             </button>
           </div>
         </nav>
