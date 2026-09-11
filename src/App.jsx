@@ -98,8 +98,11 @@ const SHEET_URLS = [
 const StatistikDaerah = ({ data, onSelectStudent }) => {
   const [expandedDaerah, setExpandedDaerah] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showOnlyActive, setShowOnlyActive] = useState(false);
 
   const daerahMap = data.reduce((acc, curr) => {
+    const isAktif = !curr.status_database || curr.status_database.toUpperCase() === 'AKTIF';
+    if (showOnlyActive && !isAktif) return acc;
     const daerah = curr['DAERAH'] ? curr['DAERAH'].trim().toUpperCase() : 'TIDAK DIKETAHUI';
     if (daerah && daerah !== '-') {
       if (!acc[daerah]) acc[daerah] = [];
@@ -139,7 +142,19 @@ const StatistikDaerah = ({ data, onSelectStudent }) => {
             )}
           </div>
         </div>
-      </div>
+      
+        <div className="mt-3 flex items-center justify-end">
+          <label className="flex items-center space-x-2 cursor-pointer" onClick={() => setShowOnlyActive(!showOnlyActive)}>
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${showOnlyActive ? 'text-mazeeda-blue' : 'text-gray-400'}`}>
+              Hanya Siswi Aktif
+            </span>
+            <div className="relative pointer-events-none">
+              <div className={`block w-10 h-6 rounded-full transition-colors duration-300 ${showOnlyActive ? 'bg-mazeeda-blue' : 'bg-gray-200'}`}></div>
+              <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 shadow-sm ${showOnlyActive ? 'transform translate-x-4' : ''}`}></div>
+            </div>
+          </label>
+        </div>
+</div>
       <div>
         {filteredDaerah.length === 0 && (
           <div className="text-center py-10 text-gray-500">Daerah tidak ditemukan.</div>
@@ -268,8 +283,11 @@ const StatistikBagian = ({ data, onSelectStudent }) => {
 
   const [expandedBagian, setExpandedBagian] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showOnlyActive, setShowOnlyActive] = useState(false);
 
   const bagianMap = data.reduce((acc, curr) => {
+    const isAktif = !curr.status_database || curr.status_database.toUpperCase() === 'AKTIF';
+    if (showOnlyActive && !isAktif) return acc;
     const bagian = curr['BAGIAN'] ? curr['BAGIAN'].trim().toUpperCase() : 'TANPA BAGIAN';
     if (bagian && bagian !== '-') {
       if (!acc[bagian]) acc[bagian] = [];
@@ -316,7 +334,19 @@ const StatistikBagian = ({ data, onSelectStudent }) => {
             )}
           </div>
         </div>
-      </div>
+      
+        <div className="mt-3 flex items-center justify-end">
+          <label className="flex items-center space-x-2 cursor-pointer" onClick={() => setShowOnlyActive(!showOnlyActive)}>
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${showOnlyActive ? 'text-mazeeda-blue' : 'text-gray-400'}`}>
+              Hanya Siswi Aktif
+            </span>
+            <div className="relative pointer-events-none">
+              <div className={`block w-10 h-6 rounded-full transition-colors duration-300 ${showOnlyActive ? 'bg-mazeeda-blue' : 'bg-gray-200'}`}></div>
+              <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 shadow-sm ${showOnlyActive ? 'transform translate-x-4' : ''}`}></div>
+            </div>
+          </label>
+        </div>
+</div>
       <div>
         {filteredBagian.length === 0 && (
           <div className="text-center py-10 text-gray-500">Bagian/Kelas tidak ditemukan.</div>
@@ -404,8 +434,11 @@ const StatistikKategori = ({ data, onSelectStudent }) => {
   const [activeKategori, setActiveKategori] = useState('DOMISILI'); 
   const [expandedItem, setExpandedItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showOnlyActive, setShowOnlyActive] = useState(false);
 
   const groupedMap = data.reduce((acc, curr) => {
+    const isAktif = !curr.status_database || curr.status_database.toUpperCase() === 'AKTIF';
+    if (showOnlyActive && !isAktif) return acc;
     let key = curr[activeKategori] ? curr[activeKategori].trim().toUpperCase() : 'TIDAK DIKETAHUI';
     if (key === '' || key === '-') key = 'TIDAK DIKETAHUI';
     if (!acc[key]) acc[key] = [];
@@ -465,7 +498,19 @@ const StatistikKategori = ({ data, onSelectStudent }) => {
             )}
           </div>
         </div>
-      </div>
+      
+        <div className="mt-3 flex items-center justify-end">
+          <label className="flex items-center space-x-2 cursor-pointer" onClick={() => setShowOnlyActive(!showOnlyActive)}>
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${showOnlyActive ? 'text-mazeeda-blue' : 'text-gray-400'}`}>
+              Hanya Siswi Aktif
+            </span>
+            <div className="relative pointer-events-none">
+              <div className={`block w-10 h-6 rounded-full transition-colors duration-300 ${showOnlyActive ? 'bg-mazeeda-blue' : 'bg-gray-200'}`}></div>
+              <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 shadow-sm ${showOnlyActive ? 'transform translate-x-4' : ''}`}></div>
+            </div>
+          </label>
+        </div>
+</div>
 
       <div>
         {filteredItems.length === 0 && (
