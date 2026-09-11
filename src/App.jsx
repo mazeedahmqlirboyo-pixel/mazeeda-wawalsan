@@ -439,8 +439,19 @@ const StatistikKategori = ({ data, onSelectStudent }) => {
   const groupedMap = data.reduce((acc, curr) => {
     const isAktif = !curr.status_database || curr.status_database.toUpperCase() === 'AKTIF';
     if (showOnlyActive && !isAktif) return acc;
-    let key = curr[activeKategori] ? curr[activeKategori].trim().toUpperCase() : 'TIDAK DIKETAHUI';
-    if (key === '' || key === '-') key = 'TIDAK DIKETAHUI';
+    let key = 'TIDAK DIKETAHUI';
+    if (activeKategori === 'UMUR') {
+      const rawAge = calculateAge(curr['TANGGAL LAHIR']);
+      if (rawAge) {
+        const yearMatch = rawAge.match(/(\d+)\s*[Tt]ahun/);
+        if (yearMatch) {
+          key = `${yearMatch[1]} TAHUN`;
+        }
+      }
+    } else {
+      key = curr[activeKategori] ? curr[activeKategori].trim().toUpperCase() : 'TIDAK DIKETAHUI';
+      if (key === '' || key === '-') key = 'TIDAK DIKETAHUI';
+    }
     if (!acc[key]) acc[key] = [];
     acc[key].push(curr);
     return acc;
@@ -450,9 +461,15 @@ const StatistikKategori = ({ data, onSelectStudent }) => {
     .map(([name, students]) => ({ 
       name, 
       count: students.length, 
-      students: [...students].sort((a, b) => (a['NAMA LENGKAP'] || '').localeCompare(b['NAMA LENGKAP'] || '')) 
-    }))
-    .sort((a, b) => b.count - a.count);
+      students: [...students].sort((a, b) => (a['NAMA LENGKAP'] || '').localeCompare(b['NAMA LENGKAP'] || ''))      }))
+    .sort((a, b) => {
+      if (activeKategori === 'UMUR') {
+        const numA = parseInt(a.name) || 0;
+        const numB = parseInt(b.name) || 0;
+        if (numA !== numB) return numA - numB;
+      }
+      return b.count - a.count;
+    });
 
   const filteredItems = sortedItems.filter(item => 
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -480,6 +497,12 @@ const StatistikKategori = ({ data, onSelectStudent }) => {
             className={`flex-1 whitespace-nowrap px-3 py-2 text-[13px] font-bold rounded-lg transition-all ${activeKategori === 'STATUS TAHFIZ' ? 'bg-white text-mazeeda-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
             Status Tahfiz
+          </button>
+          <button 
+            onClick={() => { setActiveKategori('UMUR'); setExpandedItem(null); setSearchQuery(''); }}
+            className={`flex-1 whitespace-nowrap px-3 py-2 text-[13px] font-bold rounded-lg transition-all ${activeKategori === 'UMUR' ? 'bg-white text-mazeeda-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Umur
           </button>
         </div>
 
@@ -574,7 +597,7 @@ const StatistikKategori = ({ data, onSelectStudent }) => {
                             </p>
                             <div className="mt-1.5 flex flex-wrap gap-2">
                               <span className="text-[11px] font-bold tracking-wide text-mazeeda-blue bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
-                                {activeKategori === 'DOMISILI' || activeKategori === 'KAMAR' ? 
+                                {activeKategori === 'DOMISILI' || activeKategori === 'KAMAR' || activeKategori === 'UMUR' ? 
                                   (student['STATUS TAHFIZ'] ? String(student['STATUS TAHFIZ']).trim().toUpperCase() : '-') 
                                   : (student['DOMISILI'] ? String(student['DOMISILI']).trim().toUpperCase() : '-')}
                               </span>
