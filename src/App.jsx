@@ -443,7 +443,7 @@ const StatistikKategori = ({ data, onSelectStudent }) => {
     if (activeKategori === 'UMUR') {
       const rawAge = calculateAge(curr['TANGGAL LAHIR']);
       if (rawAge) {
-        const yearMatch = rawAge.match(/(\d+)\s*[Tt]ahun/);
+        const yearMatch = rawAge.match(/(\d+)\s*[Tt]hn/);
         if (yearMatch) {
           key = `${yearMatch[1]} TAHUN`;
         }
@@ -510,10 +510,10 @@ const StatistikKategori = ({ data, onSelectStudent }) => {
         <div className="bg-gray-50 rounded-2xl flex flex-col border border-gray-100 overflow-hidden focus-within:border-blue-200 focus-within:ring-2 focus-within:ring-blue-50 transition-all">
           <div className="flex items-center px-4 py-3 relative">
             <Search className="text-gray-400 w-5 h-5 mr-3 flex-shrink-0" />
-            <input
-              type="text"
-              placeholder={`Cari ${activeKategori === 'DOMISILI' ? 'domisili' : activeKategori === 'KAMAR' ? 'kamar' : 'status tahfiz'}...`}
-              value={searchQuery}
+              <input
+                type="text"
+                placeholder={`Cari ${activeKategori === 'DOMISILI' ? 'domisili' : activeKategori === 'KAMAR' ? 'kamar' : activeKategori === 'UMUR' ? 'umur' : 'status tahfiz'}...`}
+                value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 outline-none text-gray-700 bg-transparent placeholder-gray-400 min-w-0"
             />
