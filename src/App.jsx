@@ -289,6 +289,10 @@ const StatistikBagian = ({ data, onSelectStudent }) => {
       return a.bagian.localeCompare(b.bagian);
     });
 
+  const filteredBagian = sortedBagian.filter(item => 
+    item.bagian.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="max-w-md mx-auto w-full bg-white min-h-screen pb-32">
       <div className="px-6 py-4 sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
