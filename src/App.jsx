@@ -97,6 +97,7 @@ const SHEET_URLS = [
 
 const StatistikDaerah = ({ data, onSelectStudent }) => {
   const [expandedDaerah, setExpandedDaerah] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const daerahMap = data.reduce((acc, curr) => {
     const daerah = curr['DAERAH'] ? curr['DAERAH'].trim().toUpperCase() : 'TIDAK DIKETAHUI';
@@ -111,10 +112,39 @@ const StatistikDaerah = ({ data, onSelectStudent }) => {
     .map(([daerah, students]) => ({ daerah, count: students.length, students }))
     .sort((a, b) => b.count - a.count);
 
+  const filteredDaerah = sortedDaerah.filter(item => 
+    item.daerah.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="max-w-md mx-auto w-full bg-white min-h-screen pt-2 pb-32">
-      <div className="border-t border-gray-100">
-        {sortedDaerah.map((item, idx) => {
+    <div className="max-w-md mx-auto w-full bg-white min-h-screen pb-32">
+      <div className="px-6 py-4 sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
+        <div className="bg-gray-50 rounded-2xl flex flex-col border border-gray-100 overflow-hidden focus-within:border-blue-200 focus-within:ring-2 focus-within:ring-blue-50 transition-all">
+          <div className="flex items-center px-4 py-3 relative">
+            <Search className="text-gray-400 w-5 h-5 mr-3 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Cari daerah..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 outline-none text-gray-700 bg-transparent placeholder-gray-400 min-w-0"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-full transition-colors flex-shrink-0 ml-2"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      <div>
+        {filteredDaerah.length === 0 && (
+          <div className="text-center py-10 text-gray-500">Daerah tidak ditemukan.</div>
+        )}
+        {filteredDaerah.map((item, idx) => {
           const isExpanded = expandedDaerah === item.daerah;
           return (
             <div key={idx} className="border-b border-gray-100 flex flex-col">
@@ -167,6 +197,179 @@ const StatistikDaerah = ({ data, onSelectStudent }) => {
                             <div className="mt-1.5 flex flex-wrap gap-2">
                               <span className="text-[11px] font-bold tracking-wide text-mazeeda-blue bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
                                 {student['BAGIAN'] || '-'}
+                              </span>
+                              {!isAktif && (
+                                <span className="text-[11px] font-bold tracking-wide text-red-600 bg-red-50 px-2.5 py-0.5 rounded-md border border-red-100 uppercase">
+                                  {student.status_database}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button onClick={(e) => { e.stopPropagation(); onSelectStudent(student); }} className="w-9 h-9 rounded-full bg-blue-50/50 flex items-center justify-center text-mazeeda-blue hover:bg-blue-100 transition-colors border border-blue-100 ml-auto flex-shrink-0 active:scale-95">
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+
+const StatistikBagian = ({ data, onSelectStudent }) => {
+  const getBagianSortWeight = (bagian) => {
+    if (!bagian) return 0;
+    const b = bagian.trim().toUpperCase();
+    const parts = b.split(' ');
+    if (parts.length < 2) return 0;
+    
+    const first = parts[0]; 
+    const second = parts[1]; 
+    
+    if (first === "I" && second === "TSANAWIYAH") return 100;
+    
+    if (first === "VI") {
+      if (second === "IBTIDAIYAH") return 110;
+      if (second === "IBT") return 111;
+    }
+    if (first === "V") {
+      if (second === "IBTIDAIYAH") return 120;
+      if (second === "IBT") return 121;
+    }
+    if (first === "IV") {
+      if (second === "IBTIDAIYAH") return 130;
+      if (second === "IBT") return 131;
+    }
+    if (first === "III") {
+      if (second === "IBTIDAIYAH") return 140;
+      if (second === "IBT") return 141;
+    }
+    if (first === "II") {
+      if (second === "IBTIDAIYAH") return 150;
+      if (second === "IBT") return 151;
+    }
+    if (first === "I") {
+      if (second === "IBTIDAIYAH") return 160;
+      if (second === "IBT") return 161;
+    }
+    
+    if (first === "II" && (second === "I'DADIYAH" || second === "I'DAD" || second === "IDADIYAH")) return 170;
+    if (first === "I" && (second === "I'DADIYAH" || second === "I'DAD" || second === "IDADIYAH")) return 180;
+    
+    return 0; 
+  };
+
+  const [expandedBagian, setExpandedBagian] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const bagianMap = data.reduce((acc, curr) => {
+    const bagian = curr['BAGIAN'] ? curr['BAGIAN'].trim().toUpperCase() : 'TANPA BAGIAN';
+    if (bagian && bagian !== '-') {
+      if (!acc[bagian]) acc[bagian] = [];
+      acc[bagian].push(curr);
+    }
+    return acc;
+  }, {});
+
+  const sortedBagian = Object.entries(bagianMap)
+    .map(([bagian, students]) => ({ bagian, count: students.length, students }))
+    .sort((a, b) => {
+      const weightA = getBagianSortWeight(a.bagian);
+      const weightB = getBagianSortWeight(b.bagian);
+      if (weightA !== weightB) {
+        return weightA - weightB;
+      }
+      return a.bagian.localeCompare(b.bagian);
+    });
+
+  return (
+    <div className="max-w-md mx-auto w-full bg-white min-h-screen pb-32">
+      <div className="px-6 py-4 sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
+        <div className="bg-gray-50 rounded-2xl flex flex-col border border-gray-100 overflow-hidden focus-within:border-blue-200 focus-within:ring-2 focus-within:ring-blue-50 transition-all">
+          <div className="flex items-center px-4 py-3 relative">
+            <Search className="text-gray-400 w-5 h-5 mr-3 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Cari bagian/kelas..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 outline-none text-gray-700 bg-transparent placeholder-gray-400 min-w-0"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-full transition-colors flex-shrink-0 ml-2"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      <div>
+        {filteredBagian.length === 0 && (
+          <div className="text-center py-10 text-gray-500">Bagian/Kelas tidak ditemukan.</div>
+        )}
+        {filteredBagian.map((item, idx) => {
+          const isExpanded = expandedBagian === item.bagian;
+          return (
+            <div key={idx} className="border-b border-gray-100 flex flex-col">
+              <div 
+                onClick={() => setExpandedBagian(isExpanded ? null : item.bagian)}
+                className="flex items-center justify-between py-4 px-6 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="w-6 text-left font-bold text-gray-400 text-sm">{idx + 1}</span>
+                  <span className="font-semibold text-gray-800 text-base">{item.bagian}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-white bg-mazeeda-blue px-3 py-1 rounded-full shadow-sm">{item.count}</span>
+                  <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                </div>
+              </div>
+              
+              {/* Accordion Content */}
+              {isExpanded && (
+                <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="space-y-3">
+                    {item.students.map((student, i) => {
+                      const isAktif = !student.status_database || student.status_database.toUpperCase() === 'AKTIF';
+                      return (
+                        <div key={i} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+                            {student['FOTO URL'] && student['FOTO URL'].trim() !== '' && student['FOTO URL'] !== '-' ? (
+                              <>
+                                <img 
+                                  src={formatImageUrl(student['FOTO URL'])} 
+                                  alt={student['NAMA LENGKAP']} 
+                                  className="w-full h-full object-cover absolute z-10" 
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                                <div className="w-full h-full flex items-center justify-center bg-gray-50 absolute z-0">
+                                  <User className="w-5 h-5 text-gray-400" />
+                                </div>
+                              </>
+                            ) : (
+                              <User className="w-5 h-5 text-gray-400" />
+                            )}
+                          </div>
+                          <div className="flex flex-col flex-1">
+                            <p className={`font-bold text-sm leading-tight ${!isAktif ? 'text-red-600' : 'text-gray-800'}`}>
+                              {student['NAMA LENGKAP']}
+                            </p>
+                            <div className="mt-1.5 flex flex-wrap gap-2">
+                              <span className="text-[11px] font-bold tracking-wide text-mazeeda-blue bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
+                                {student['DAERAH'] ? String(student['DAERAH']).trim().toUpperCase() : '-'}
                               </span>
                               {!isAktif && (
                                 <span className="text-[11px] font-bold tracking-wide text-red-600 bg-red-50 px-2.5 py-0.5 rounded-md border border-red-100 uppercase">
@@ -657,12 +860,15 @@ function App() {
             {activeTab === 'statistik' && (
               <h2 className="text-xl font-bold text-blue-100 text-center mt-1 tracking-wide">Statistik Daerah Siswi</h2>
             )}
+            {activeTab === 'bagian' && (
+              <h2 className="text-xl font-bold text-blue-100 text-center mt-1 tracking-wide">Data Bagian</h2>
+            )}
           </div>
         </div>
 
         {activeTab === 'beranda' ? (
         <>
-        {/* Search Bar */}
+          {/* Search Bar */}
         <div className="px-6 -mt-6 sticky top-4 z-10">
           <div className="bg-white rounded-2xl shadow-lg flex flex-col border border-gray-100 overflow-hidden">
             <div className="flex items-center px-4 py-3 relative">
@@ -815,7 +1021,10 @@ function App() {
             Login Admin
           </button>
         </div>
+        
         </>
+      ) : activeTab === 'bagian' ? (
+        <StatistikBagian data={allData} onSelectStudent={setSelectedStudent} />
       ) : (
         <StatistikDaerah data={allData} onSelectStudent={setSelectedStudent} />
       )}
@@ -840,7 +1049,7 @@ function App() {
         {/* Bottom Navigation */}
       {!selectedStudent && (
         <div className="fixed bottom-6 left-0 right-0 z-40 px-6 flex justify-center pointer-events-none pb-safe">
-          <nav className="w-full max-w-[340px] bg-white/90 backdrop-blur-xl border border-white/60 shadow-[0_12px_40px_rgba(0,0,0,0.12)] rounded-full pointer-events-auto overflow-hidden">
+          <nav className="w-full max-w-[360px] bg-white/90 backdrop-blur-xl border border-white/60 shadow-[0_12px_40px_rgba(0,0,0,0.12)] rounded-full pointer-events-auto overflow-hidden">
             <div className="h-[70px] flex items-center justify-around px-4">
             <button 
               onClick={() => setActiveTab('beranda')}
@@ -848,6 +1057,14 @@ function App() {
             >
               <Home className={`w-6 h-6 transition-all duration-200 ${activeTab === 'beranda' ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
               <span className={`text-[10px] mt-1 transition-all duration-200 ${activeTab === 'beranda' ? 'font-bold' : 'font-medium'}`}>Beranda</span>
+            </button>
+            
+            <button 
+              onClick={() => setActiveTab('bagian')}
+              className={`outline-none focus:outline-none flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${activeTab === 'bagian' ? 'text-mazeeda-blue translate-y-[-2px]' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <Users className={`w-6 h-6 transition-all duration-200 ${activeTab === 'bagian' ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
+              <span className={`text-[10px] mt-1 transition-all duration-200 ${activeTab === 'bagian' ? 'font-bold' : 'font-medium'}`}>Bagian</span>
             </button>
             
             <button 
