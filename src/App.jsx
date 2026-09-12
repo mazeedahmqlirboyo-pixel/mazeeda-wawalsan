@@ -88,7 +88,7 @@ const formatImageUrl = (url) => {
 // ==========================================
 // TEMPAT PASTE LINK CSV GOOGLE SHEETS
 // ==========================================
-const PENGAJAR_CSV_URL = "TARUH_LINK_CSV_PENGAJAR_DISINI";
+const PENGAJAR_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRgpkxfJi3edqvTFLa8ZU_zYktFDoQmxWiL0qwrQBDyaAXyrUkQikIUbEDd4vmJiINWJRxkQmCh7jDk/pub?gid=271775001&single=true&output=csv";
 
 const SHEET_URLS = [
   { url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRgpkxfJi3edqvTFLa8ZU_zYktFDoQmxWiL0qwrQBDyaAXyrUkQikIUbEDd4vmJiINWJRxkQmCh7jDk/pub?gid=0&single=true&output=csv', status: 'Aktif' },
@@ -849,7 +849,7 @@ function App() {
     useEffect(() => {
       fetchAllSheets();
 
-      if (PENGAJAR_CSV_URL && PENGAJAR_CSV_URL !== "TARUH_LINK_CSV_PENGAJAR_DISINI") {
+      if (PENGAJAR_CSV_URL && PENGAJAR_CSV_URL !== "https://docs.google.com/spreadsheets/d/e/2PACX-1vRgpkxfJi3edqvTFLa8ZU_zYktFDoQmxWiL0qwrQBDyaAXyrUkQikIUbEDd4vmJiINWJRxkQmCh7jDk/pub?gid=271775001&single=true&output=csv") {
         fetch(PENGAJAR_CSV_URL)
           .then(res => res.text())
           .then(csv => {
