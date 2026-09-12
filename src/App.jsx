@@ -88,6 +88,8 @@ const formatImageUrl = (url) => {
 // ==========================================
 // TEMPAT PASTE LINK CSV GOOGLE SHEETS
 // ==========================================
+const PENGAJAR_CSV_URL = "TARUH_LINK_CSV_PENGAJAR_DISINI";
+
 const SHEET_URLS = [
   { url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRgpkxfJi3edqvTFLa8ZU_zYktFDoQmxWiL0qwrQBDyaAXyrUkQikIUbEDd4vmJiINWJRxkQmCh7jDk/pub?gid=0&single=true&output=csv', status: 'Aktif' },
   { url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRgpkxfJi3edqvTFLa8ZU_zYktFDoQmxWiL0qwrQBDyaAXyrUkQikIUbEDd4vmJiINWJRxkQmCh7jDk/pub?gid=1466832042&single=true&output=csv', status: 'Boyong' },
@@ -625,9 +627,118 @@ const StatistikKategori = ({ data, onSelectStudent }) => {
   );
 };
 
+
+const DataPengajar = ({ data }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filtered = data.filter(p => {
+    const nama = (p['NAMA LENGKAP'] || '').toLowerCase();
+    const bagian = (p['BAGIAN'] || '').toLowerCase();
+    const pelajaran = (p['PELAJARAN'] || '').toLowerCase();
+    const status = (p['STATUS'] || '').toLowerCase();
+    const daerah = (p['DAERAH'] || '').toLowerCase();
+    const lokal = (p['LOKAL'] || '').toLowerCase();
+    
+    const term = searchQuery.toLowerCase();
+    return nama.includes(term) || bagian.includes(term) || pelajaran.includes(term) || status.includes(term) || daerah.includes(term) || lokal.includes(term);
+  });
+
+  return (
+    <div className="max-w-md mx-auto w-full bg-white min-h-screen pb-32">
+      <div className="px-6 pt-4 pb-4 sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm flex flex-col gap-3">
+        <div className="bg-gray-50 rounded-2xl flex flex-col border border-gray-100 overflow-hidden focus-within:border-blue-200 focus-within:ring-2 focus-within:ring-blue-50 transition-all">
+          <div className="flex items-center px-4 py-3 relative">
+            <Search className="text-gray-400 w-5 h-5 mr-3 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Cari nama, pelajaran, bagian..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 outline-none text-gray-700 bg-transparent placeholder-gray-400 min-w-0"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-full transition-colors flex-shrink-0 ml-2"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-4">
+        {filtered.length === 0 ? (
+          <div className="text-center py-10 text-gray-500 font-medium">
+            {data.length === 0 ? "Data Pengajar belum dimuat." : "Pengajar tidak ditemukan."}
+          </div>
+        ) : (
+          filtered.map((pengajar, idx) => (
+            <div key={idx} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3 relative overflow-hidden group hover:border-blue-200 hover:shadow-md transition-all">
+              <div className="flex gap-4 items-start">
+                <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative shadow-sm">
+                  {pengajar['FOTO'] && pengajar['FOTO'].trim() !== '' && pengajar['FOTO'] !== '-' ? (
+                    <>
+                      <img 
+                        src={formatImageUrl(pengajar['FOTO'])} 
+                        alt={pengajar['NAMA LENGKAP']} 
+                        className="w-full h-full object-cover absolute z-10" 
+                        referrerPolicy="no-referrer"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                      <div className="w-full h-full flex items-center justify-center bg-gray-50 absolute z-0">
+                        <BookOpen className="w-6 h-6 text-gray-400" />
+                      </div>
+                    </>
+                  ) : (
+                    <BookOpen className="w-6 h-6 text-gray-400" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-gray-800 text-sm leading-snug">{pengajar['NAMA LENGKAP']}</h3>
+                  {pengajar['PELAJARAN'] && (
+                    <p className="text-[11px] text-mazeeda-blue font-bold mt-1 line-clamp-2 uppercase tracking-wide">
+                      {pengajar['PELAJARAN']}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-1 border-t border-gray-50 pt-3">
+                {pengajar['STATUS'] && (
+                  <span className="text-[9px] font-bold bg-blue-50 text-mazeeda-blue px-2 py-1 rounded-md uppercase border border-blue-100">
+                    {pengajar['STATUS']}
+                  </span>
+                )}
+                {pengajar['BAGIAN'] && (
+                  <span className="text-[9px] font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded-md border border-gray-200">
+                    BAGIAN {pengajar['BAGIAN']}
+                  </span>
+                )}
+                {pengajar['LOKAL'] && (
+                  <span className="text-[9px] font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded-md border border-gray-200">
+                    LOKAL {pengajar['LOKAL']}
+                  </span>
+                )}
+                {pengajar['DAERAH'] && (
+                  <span className="text-[9px] font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded-md border border-gray-200">
+                    {pengajar['DAERAH']}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+
 function App() {
   const [query, setQuery] = useState('');
   const [allData, setAllData] = useState([]);
+  const [pengajarData, setPengajarData] = useState([]);
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -735,9 +846,24 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    fetchAllSheets();
-  }, []);
+    useEffect(() => {
+      fetchAllSheets();
+
+      if (PENGAJAR_CSV_URL && PENGAJAR_CSV_URL !== "TARUH_LINK_CSV_PENGAJAR_DISINI") {
+        fetch(PENGAJAR_CSV_URL)
+          .then(res => res.text())
+          .then(csv => {
+            Papa.parse(csv, {
+              header: true,
+              skipEmptyLines: true,
+              complete: (results) => {
+                setPengajarData(results.data);
+              }
+            });
+          })
+          .catch(err => console.error("Error fetching pengajar:", err));
+      }
+    }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -1096,6 +1222,9 @@ function App() {
             {activeTab === 'kategori' && (
               <h2 className="text-xl font-bold text-blue-100 text-center mt-1 tracking-wide">Data Kategori</h2>
             )}
+            {activeTab === 'pengajar' && (
+              <h2 className="text-xl font-bold text-blue-100 text-center mt-1 tracking-wide">Data Pengajar</h2>
+            )}
           </div>
         </div>
 
@@ -1256,11 +1385,13 @@ function App() {
         </div>
         
         </>
-      ) : activeTab === 'bagian' ? (
-        <StatistikBagian data={allData} onSelectStudent={setSelectedStudent} />
-      ) : activeTab === 'kategori' ? (
-        <StatistikKategori data={allData} onSelectStudent={setSelectedStudent} />
-      ) : (
+        ) : activeTab === 'bagian' ? (
+          <StatistikBagian data={allData} onSelectStudent={setSelectedStudent} />
+        ) : activeTab === 'kategori' ? (
+          <StatistikKategori data={allData} onSelectStudent={setSelectedStudent} />
+        ) : activeTab === 'pengajar' ? (
+          <DataPengajar data={pengajarData} />
+        ) : (
         <StatistikDaerah data={allData} onSelectStudent={setSelectedStudent} />
       )}
       </div>
@@ -1284,7 +1415,7 @@ function App() {
         {/* Bottom Navigation */}
       {!selectedStudent && (
         <div className="fixed bottom-6 left-0 right-0 z-40 px-6 flex justify-center pointer-events-none pb-safe">
-          <nav className="w-full max-w-[380px] bg-white/90 backdrop-blur-xl border border-white/60 shadow-[0_12px_40px_rgba(0,0,0,0.12)] rounded-full pointer-events-auto overflow-hidden">
+          <nav className="w-full max-w-[420px] bg-white/90 backdrop-blur-xl border border-white/60 shadow-[0_12px_40px_rgba(0,0,0,0.12)] rounded-full pointer-events-auto overflow-hidden">
             <div className="h-[70px] flex items-center justify-around px-4">
             <button 
               onClick={() => setActiveTab('beranda')}
@@ -1316,6 +1447,14 @@ function App() {
             >
               <PieChart className={`w-6 h-6 transition-all duration-200 ${activeTab === 'kategori' ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
               <span className={`text-[10px] mt-1 transition-all duration-200 ${activeTab === 'kategori' ? 'font-bold' : 'font-medium'}`}>Kategori</span>
+            </button>
+            
+            <button 
+              onClick={() => setActiveTab('pengajar')}
+              className={`outline-none focus:outline-none flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${activeTab === 'pengajar' ? 'text-mazeeda-blue translate-y-[-2px]' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <BookOpen className={`w-6 h-6 transition-all duration-200 ${activeTab === 'pengajar' ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
+              <span className={`text-[10px] mt-1 transition-all duration-200 ${activeTab === 'pengajar' ? 'font-bold' : 'font-medium'}`}>Pengajar</span>
             </button>
           </div>
         </nav>
