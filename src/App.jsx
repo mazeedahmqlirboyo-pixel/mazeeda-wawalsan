@@ -668,63 +668,44 @@ const DataPengajar = ({ data }) => {
         </div>
       </div>
 
-      <div className="p-6 space-y-4">
+      <div>
         {filtered.length === 0 ? (
           <div className="text-center py-10 text-gray-500 font-medium">
             {data.length === 0 ? "Data Pengajar belum dimuat." : "Pengajar tidak ditemukan."}
           </div>
         ) : (
           filtered.map((pengajar, idx) => (
-            <div key={idx} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3 relative overflow-hidden group hover:border-blue-200 hover:shadow-md transition-all">
-              <div className="flex gap-4 items-start">
-                <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative shadow-sm">
-                  {pengajar['FOTO'] && pengajar['FOTO'].trim() !== '' && pengajar['FOTO'] !== '-' ? (
-                    <>
-                      <img 
-                        src={formatImageUrl(pengajar['FOTO'])} 
-                        alt={pengajar['NAMA LENGKAP']} 
-                        className="w-full h-full object-cover absolute z-10" 
-                        referrerPolicy="no-referrer"
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                      />
-                      <div className="w-full h-full flex items-center justify-center bg-gray-50 absolute z-0">
-                        <BookOpen className="w-6 h-6 text-gray-400" />
-                      </div>
-                    </>
-                  ) : (
-                    <BookOpen className="w-6 h-6 text-gray-400" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-gray-800 text-sm leading-snug">{pengajar['NAMA LENGKAP']}</h3>
-                  {pengajar['PELAJARAN'] && (
-                    <p className="text-[11px] text-mazeeda-blue font-bold mt-1 line-clamp-2 uppercase tracking-wide">
-                      {pengajar['PELAJARAN']}
-                    </p>
-                  )}
-                </div>
+            <div key={idx} className="flex items-center gap-4 py-4 px-6 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+              <div className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+                {pengajar['FOTO'] && pengajar['FOTO'].trim() !== '' && pengajar['FOTO'] !== '-' ? (
+                  <>
+                    <img 
+                      src={formatImageUrl(pengajar['FOTO'])} 
+                      alt={pengajar['NAMA LENGKAP']} 
+                      className="w-full h-full object-cover absolute z-10" 
+                      referrerPolicy="no-referrer"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                    <div className="w-full h-full flex items-center justify-center bg-gray-50 absolute z-0">
+                      <User className="w-5 h-5 text-gray-300" />
+                    </div>
+                  </>
+                ) : (
+                  <User className="w-5 h-5 text-gray-300" />
+                )}
               </div>
-              <div className="flex flex-wrap gap-1.5 mt-1 border-t border-gray-50 pt-3">
-                {pengajar['STATUS'] && (
-                  <span className="text-[9px] font-bold bg-blue-50 text-mazeeda-blue px-2 py-1 rounded-md uppercase border border-blue-100">
-                    {pengajar['STATUS']}
-                  </span>
-                )}
-                {pengajar['BAGIAN'] && (
-                  <span className="text-[9px] font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded-md border border-gray-200">
-                    BAGIAN {pengajar['BAGIAN']}
-                  </span>
-                )}
-                {pengajar['LOKAL'] && (
-                  <span className="text-[9px] font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded-md border border-gray-200">
-                    LOKAL {pengajar['LOKAL']}
-                  </span>
-                )}
-                {pengajar['DAERAH'] && (
-                  <span className="text-[9px] font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded-md border border-gray-200">
-                    {pengajar['DAERAH']}
-                  </span>
-                )}
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-gray-800 text-[14px] leading-tight truncate">{pengajar['NAMA LENGKAP']}</h3>
+                <p className="text-[11px] font-bold text-mazeeda-blue mt-0.5 truncate uppercase tracking-wide">
+                  {pengajar['STATUS']} {pengajar['PELAJARAN'] ? `• ${pengajar['PELAJARAN']}` : ''}
+                </p>
+                <p className="text-[11.5px] text-gray-500 mt-1 truncate font-medium">
+                  {[
+                    pengajar['BAGIAN'] ? `Bagian ${pengajar['BAGIAN']}` : '',
+                    pengajar['LOKAL'] ? `Lokal ${pengajar['LOKAL']}` : '',
+                    pengajar['DAERAH'] ? pengajar['DAERAH'] : ''
+                  ].filter(Boolean).join(' • ')}
+                </p>
               </div>
             </div>
           ))
@@ -849,7 +830,7 @@ function App() {
     useEffect(() => {
       fetchAllSheets();
 
-      if (PENGAJAR_CSV_URL && PENGAJAR_CSV_URL !== "https://docs.google.com/spreadsheets/d/e/2PACX-1vRgpkxfJi3edqvTFLa8ZU_zYktFDoQmxWiL0qwrQBDyaAXyrUkQikIUbEDd4vmJiINWJRxkQmCh7jDk/pub?gid=271775001&single=true&output=csv") {
+      if (PENGAJAR_CSV_URL && PENGAJAR_CSV_URL.startsWith("http")) {
         fetch(PENGAJAR_CSV_URL)
           .then(res => res.text())
           .then(csv => {
