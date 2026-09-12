@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, Lock, CheckCircle, XCircle, AlertTriangle, Download, MapPin, Calendar, Users, Home, BookOpen, Map, User, Heart, Eye, EyeOff, ChevronDown, Moon, Sun, BarChart2 , PieChart} from 'lucide-react';
+import { Search, X, Lock, CheckCircle, XCircle, AlertTriangle, Download, MapPin, Calendar, Users, Home, BookOpen, Map, User, Heart, Eye, EyeOff, ChevronDown, Moon, Sun, BarChart2 , PieChart, GraduationCap, ChevronRight} from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import appLogo from './assets/logo.png';
 import Papa from 'papaparse';
 import { supabase } from './supabaseClient';
+
+
 
 const formatWhatsAppNumber = (phone) => {
   if (!phone) return '';
@@ -89,6 +91,7 @@ const formatImageUrl = (url) => {
 // TEMPAT PASTE LINK CSV GOOGLE SHEETS
 // ==========================================
 const PENGAJAR_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRgpkxfJi3edqvTFLa8ZU_zYktFDoQmxWiL0qwrQBDyaAXyrUkQikIUbEDd4vmJiINWJRxkQmCh7jDk/pub?gid=271775001&single=true&output=csv";
+const PELAJARAN_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRgpkxfJi3edqvTFLa8ZU_zYktFDoQmxWiL0qwrQBDyaAXyrUkQikIUbEDd4vmJiINWJRxkQmCh7jDk/pub?gid=381946119&single=true&output=csv";
 
 const SHEET_URLS = [
   { url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRgpkxfJi3edqvTFLa8ZU_zYktFDoQmxWiL0qwrQBDyaAXyrUkQikIUbEDd4vmJiINWJRxkQmCh7jDk/pub?gid=0&single=true&output=csv', status: 'Aktif' },
@@ -97,7 +100,7 @@ const SHEET_URLS = [
 ];
 // ==========================================
 
-const StatistikDaerah = ({ data, onSelectStudent }) => {
+const StatistikDaerah = ({ data, onSelectStudent, onImageClick }) => {
   const [expandedDaerah, setExpandedDaerah] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showOnlyActive, setShowOnlyActive] = useState(false);
@@ -123,7 +126,7 @@ const StatistikDaerah = ({ data, onSelectStudent }) => {
 
   return (
     <div className="max-w-md mx-auto w-full bg-white min-h-screen pb-32">
-      <div className="px-6 py-4 sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
+      <div className="px-6 py-4 sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
         <div className="bg-gray-50 rounded-2xl flex flex-col border border-gray-100 overflow-hidden focus-within:border-blue-200 focus-within:ring-2 focus-within:ring-blue-50 transition-all">
           <div className="flex items-center px-4 py-3 relative">
             <Search className="text-gray-400 w-5 h-5 mr-3 flex-shrink-0" />
@@ -187,7 +190,15 @@ const StatistikDaerah = ({ data, onSelectStudent }) => {
                       const isAktif = !student.status_database || student.status_database.toUpperCase() === 'AKTIF';
                       return (
                         <div key={i} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+                          <div 
+                            className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative cursor-pointer active:scale-95 transition-transform"
+                            onClick={(e) => {
+                              if (student['FOTO URL'] && student['FOTO URL'].trim() !== '' && student['FOTO URL'] !== '-') {
+                                e.stopPropagation();
+                                onImageClick(student['FOTO URL']);
+                              }
+                            }}
+                          >
                             {student['FOTO URL'] && student['FOTO URL'].trim() !== '' && student['FOTO URL'] !== '-' ? (
                               <>
                                 <img 
@@ -240,7 +251,7 @@ const StatistikDaerah = ({ data, onSelectStudent }) => {
 };
 
 
-const StatistikBagian = ({ data, onSelectStudent }) => {
+const StatistikBagian = ({ data, onSelectStudent, onImageClick }) => {
   const getBagianSortWeight = (bagian) => {
     if (!bagian) return 0;
     const b = bagian.trim().toUpperCase();
@@ -315,7 +326,7 @@ const StatistikBagian = ({ data, onSelectStudent }) => {
 
   return (
     <div className="max-w-md mx-auto w-full bg-white min-h-screen pb-32">
-      <div className="px-6 py-4 sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
+      <div className="px-6 py-4 sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
         <div className="bg-gray-50 rounded-2xl flex flex-col border border-gray-100 overflow-hidden focus-within:border-blue-200 focus-within:ring-2 focus-within:ring-blue-50 transition-all">
           <div className="flex items-center px-4 py-3 relative">
             <Search className="text-gray-400 w-5 h-5 mr-3 flex-shrink-0" />
@@ -379,7 +390,15 @@ const StatistikBagian = ({ data, onSelectStudent }) => {
                       const isAktif = !student.status_database || student.status_database.toUpperCase() === 'AKTIF';
                       return (
                         <div key={i} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+                          <div 
+                            className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative cursor-pointer active:scale-95 transition-transform"
+                            onClick={(e) => {
+                              if (student['FOTO URL'] && student['FOTO URL'].trim() !== '' && student['FOTO URL'] !== '-') {
+                                e.stopPropagation();
+                                onImageClick(student['FOTO URL']);
+                              }
+                            }}
+                          >
                             {student['FOTO URL'] && student['FOTO URL'].trim() !== '' && student['FOTO URL'] !== '-' ? (
                               <>
                                 <img 
@@ -432,7 +451,7 @@ const StatistikBagian = ({ data, onSelectStudent }) => {
 };
 
 
-const StatistikKategori = ({ data, onSelectStudent }) => {
+const StatistikKategori = ({ data, onSelectStudent, onImageClick }) => {
   const [activeKategori, setActiveKategori] = useState('DOMISILI'); 
   const [expandedItem, setExpandedItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -479,7 +498,7 @@ const StatistikKategori = ({ data, onSelectStudent }) => {
 
   return (
     <div className="max-w-md mx-auto w-full bg-white min-h-screen pb-32">
-      <div className="px-6 pt-4 pb-4 sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm flex flex-col gap-4">
+      <div className="px-6 pt-4 pb-4 sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm flex flex-col gap-4">
         {/* Toggle / Segmented Control */}
         <div className="flex bg-gray-100 p-1 rounded-xl overflow-x-auto hide-scrollbar">
           <button 
@@ -573,7 +592,15 @@ const StatistikKategori = ({ data, onSelectStudent }) => {
                       const isAktif = !student.status_database || student.status_database.toUpperCase() === 'AKTIF';
                       return (
                         <div key={i} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+                          <div 
+                            className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative cursor-pointer active:scale-95 transition-transform"
+                            onClick={(e) => {
+                              if (student['FOTO URL'] && student['FOTO URL'].trim() !== '' && student['FOTO URL'] !== '-') {
+                                e.stopPropagation();
+                                onImageClick(student['FOTO URL']);
+                              }
+                            }}
+                          >
                             {student['FOTO URL'] && student['FOTO URL'].trim() !== '' && student['FOTO URL'] !== '-' ? (
                               <>
                                 <img 
@@ -628,7 +655,7 @@ const StatistikKategori = ({ data, onSelectStudent }) => {
 };
 
 
-const DataPengajar = ({ data }) => {
+const DataPengajar = ({ data, onImageClick }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filtered = data.filter(p => {
@@ -645,7 +672,7 @@ const DataPengajar = ({ data }) => {
 
   return (
     <div className="max-w-md mx-auto w-full bg-white min-h-screen pb-32">
-      <div className="px-6 pt-4 pb-4 sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm flex flex-col gap-3">
+      <div className="px-6 pt-4 pb-4 sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm flex flex-col gap-3">
         <div className="bg-gray-50 rounded-2xl flex flex-col border border-gray-100 overflow-hidden focus-within:border-blue-200 focus-within:ring-2 focus-within:ring-blue-50 transition-all">
           <div className="flex items-center px-4 py-3 relative">
             <Search className="text-gray-400 w-5 h-5 mr-3 flex-shrink-0" />
@@ -675,8 +702,19 @@ const DataPengajar = ({ data }) => {
           </div>
         ) : (
           filtered.map((pengajar, idx) => (
-            <div key={idx} className="flex items-center gap-4 py-4 px-6 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-              <div className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+            <div 
+                key={idx} 
+                className="flex items-center gap-4 py-4 px-6 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+              >
+              <div 
+                className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative z-10"
+                onClick={(e) => {
+                  if (pengajar['FOTO'] && pengajar['FOTO'].trim() !== '' && pengajar['FOTO'] !== '-') {
+                    e.stopPropagation();
+                    onImageClick(pengajar['FOTO']);
+                  }
+                }}
+              >
                 {pengajar['FOTO'] && pengajar['FOTO'].trim() !== '' && pengajar['FOTO'] !== '-' ? (
                   <>
                     <img 
@@ -699,14 +737,38 @@ const DataPengajar = ({ data }) => {
                 <p className="text-[11px] font-bold text-mazeeda-blue mt-0.5 truncate uppercase tracking-wide">
                   {pengajar['STATUS']} {pengajar['PELAJARAN'] ? `• ${pengajar['PELAJARAN']}` : ''}
                 </p>
-                <p className="text-[11.5px] text-gray-500 mt-1 truncate font-medium">
-                  {[
-                    pengajar['BAGIAN'] ? `Bagian ${pengajar['BAGIAN']}` : '',
-                    pengajar['LOKAL'] ? `Lokal ${pengajar['LOKAL']}` : '',
-                    pengajar['DAERAH'] ? pengajar['DAERAH'] : ''
-                  ].filter(Boolean).join(' • ')}
-                </p>
+                  <div className="text-[11.5px] text-gray-500 mt-1 truncate font-medium">
+                    {pengajar['BAGIAN'] && (
+                      <>
+                        <span className="text-mazeeda-blue font-bold">
+                          Bagian {pengajar['BAGIAN']}
+                        </span>
+                        {(pengajar['LOKAL'] || pengajar['DAERAH']) && ' • '}
+                      </>
+                    )}
+                    {pengajar['LOKAL'] && (
+                       <>
+                         Lokal {pengajar['LOKAL']}
+                         {pengajar['DAERAH'] && ' • '}
+                       </>
+                    )}
+                    {pengajar['DAERAH'] && pengajar['DAERAH']}
+                  </div>
               </div>
+              <button 
+                  className="p-2 -mr-2 bg-blue-50/50 hover:bg-blue-100 rounded-full transition-colors active:scale-95 border border-transparent hover:border-blue-100"
+                  title="Lihat Denah"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (pengajar['DENAH'] && pengajar['DENAH'].trim() !== '' && pengajar['DENAH'] !== '-') {
+                      onImageClick(pengajar['DENAH']);
+                    } else {
+                      alert('Denah belum tersedia untuk pengajar ini.');
+                    }
+                  }}
+                >
+                  <Map className="w-5 h-5 text-mazeeda-blue flex-shrink-0 opacity-90" />
+                </button>
             </div>
           ))
         )}
@@ -716,16 +778,151 @@ const DataPengajar = ({ data }) => {
 };
 
 
+
+const DataPelajaran = ({ data }) => {
+  if (!data || data.length === 0) {
+    return (
+      <div className="max-w-md mx-auto w-full bg-white min-h-screen pb-32 flex items-center justify-center">
+        <div className="text-gray-400 font-medium text-sm">Memuat jadwal...</div>
+      </div>
+    );
+  }
+
+  const days = ['AHAD', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+  const todayStr = days[new Date().getDay()];
+  
+  const todaySchedule = data.find(item => (item['HARI'] || '').trim().toUpperCase() === todayStr);
+  const otherSchedules = data.filter(item => {
+    const h = (item['HARI'] || '').trim().toUpperCase();
+    return h && h !== todayStr;
+  });
+
+  return (
+    <div className="max-w-md mx-auto w-full bg-gray-50 min-h-screen pb-32 pt-6 px-5">
+      
+      {/* Kartu Hari Ini (Minimalist iOS Widget Style) */}
+                  {todaySchedule && (
+            <div className="mb-8 bg-gradient-to-br from-blue-600 via-mazeeda-blue to-blue-800 rounded-[32px] shadow-[0_16px_40px_-12px_rgba(30,58,138,0.5)] p-7 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full blur-xl -ml-10 -mb-10 pointer-events-none"></div>
+              
+              <div className="flex flex-col mb-7 relative z-10">
+                <div className="flex items-center justify-between w-full mb-1">
+                  <span className="text-[11px] font-extrabold tracking-[0.2em] text-blue-100 uppercase">JADWAL HARI INI</span>
+                  <Calendar className="w-5 h-5 text-blue-200" />
+                </div>
+                <h2 className="text-[34px] font-black text-white uppercase tracking-tight leading-none mt-1">{todaySchedule['HARI']}</h2>
+              </div>
+              
+              <div className="flex flex-col gap-3 relative z-10">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-colors rounded-[24px] p-5 flex flex-col justify-center shadow-sm">
+                  <span className="text-[10px] text-blue-200 font-bold uppercase tracking-[0.15em] mb-1.5">Hishoh Ula</span>
+                  <span className="font-bold text-white text-[16px] leading-tight">{todaySchedule['HISHOH ULA'] || '-'}</span>
+                </div>
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-colors rounded-[24px] p-5 flex flex-col justify-center shadow-sm">
+                  <span className="text-[10px] text-blue-200 font-bold uppercase tracking-[0.15em] mb-1.5">Hishoh Tsaniyah</span>
+                  <span className="font-bold text-white text-[16px] leading-tight">{todaySchedule['HISHOH TSANIYAH'] || '-'}</span>
+                </div>
+              </div>
+            </div>
+          )}
+  
+        {/* Jadwal Hari Lainnya (Timeline Style) */}
+      <div>
+        <div className="text-[11px] font-extrabold text-gray-400 mb-4 px-2 tracking-[0.15em] uppercase">Jadwal Lainnya</div>
+        <div className="space-y-4">
+          {otherSchedules.map((item, idx) => (
+            <div key={idx} className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-100 transition-all duration-300">
+              <h3 className="font-extrabold text-gray-800 text-lg uppercase tracking-wide mb-3 flex items-center gap-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-mazeeda-blue shadow-sm"></div>
+                {item['HARI']}
+              </h3>
+              
+              <div className="flex flex-col gap-4 ml-1.5 border-l-2 border-gray-100 pl-5 py-1">
+                <div className="relative">
+                  <div className="absolute -left-[23px] top-1.5 w-1.5 h-1.5 rounded-full bg-gray-300"></div>
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest block mb-0.5">Hishoh Ula</span>
+                  <span className="text-[13px] font-bold text-gray-700 leading-snug block">{item['HISHOH ULA'] || '-'}</span>
+                </div>
+                <div className="relative">
+                  <div className="absolute -left-[23px] top-1.5 w-1.5 h-1.5 rounded-full bg-gray-300"></div>
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest block mb-0.5">Hishoh Tsaniyah</span>
+                  <span className="text-[13px] font-bold text-gray-700 leading-snug block">{item['HISHOH TSANIYAH'] || '-'}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+
+
+
+
+
+
+const ImageViewer = ({ src, onClose }) => {
+    if (!src) return null;
+    return (
+      <div 
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md animate-fade-in p-4 select-none"
+        onClick={onClose}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        <button 
+          className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/20 p-2 rounded-full backdrop-blur-md transition-all z-20 shadow-lg"
+          onClick={onClose}
+        >
+          <X className="w-6 h-6" />
+        </button>
+        
+        <div className="relative max-w-full max-h-[90vh] flex items-center justify-center pointer-events-none">
+          <img 
+            src={formatImageUrl(src)} 
+            alt="Protected Content" 
+            className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl animate-zoom-in blur-[3px]"
+            style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none', pointerEvents: 'none' }}
+            referrerPolicy="no-referrer"
+          />
+          
+          <div className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-xl opacity-40 mix-blend-overlay z-10">
+             <div className="w-[150%] h-[150%] flex flex-wrap items-center justify-center gap-4 -rotate-12 transform scale-125 pointer-events-none select-none">
+               {Array.from({ length: 30 }).map((_, i) => (
+                 <span key={i} className="text-white/80 text-3xl font-black uppercase tracking-[0.3em] drop-shadow-md">
+                   RAHASIA
+                 </span>
+               ))}
+             </div>
+          </div>
+        </div>
+        
+        <div className="absolute bottom-10 text-white/50 text-xs tracking-widest font-bold uppercase z-20 text-center px-4">
+          Dokumen Rahasia Mazeeda
+        </div>
+      </div>
+    );
+  };
+
 function App() {
+
+  
+
+
   const [query, setQuery] = useState('');
   const [allData, setAllData] = useState([]);
   const [pengajarData, setPengajarData] = useState([]);
+  const [pelajaranData, setPelajaranData] = useState([]);
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('beranda');
   const [selectedStudent, setSelectedStudent] = useState(null);
-  
+    const [fullScreenImage, setFullScreenImage] = useState(null);
+    
 
   const [hasSearched, setHasSearched] = useState(false);
 
@@ -844,6 +1041,23 @@ function App() {
           })
           .catch(err => console.error("Error fetching pengajar:", err));
       }
+
+      // Fetch Pelajaran
+      if (PELAJARAN_CSV_URL) {
+        fetch(PELAJARAN_CSV_URL)
+          .then(res => res.text())
+          .then(csv => {
+            Papa.parse(csv, {
+              header: true,
+              skipEmptyLines: true,
+              complete: (results) => {
+                setPelajaranData(results.data);
+              }
+            });
+          })
+          .catch(err => console.error("Error fetching pelajaran:", err));
+      }
+
     }, []);
 
   useEffect(() => {
@@ -970,7 +1184,15 @@ function App() {
       <div className={cardClass}>
                     {/* Header Card */}
                     <div className="flex items-center gap-4 mb-5">
-                      <div className="w-16 h-16 rounded-full bg-blue-50 border-2 border-white shadow-sm overflow-hidden flex-shrink-0 flex items-center justify-center ring-2 ring-gray-50">
+                      <div 
+                        className="w-16 h-16 rounded-full bg-blue-50 border-2 border-white shadow-sm overflow-hidden flex-shrink-0 flex items-center justify-center ring-2 ring-gray-50 cursor-pointer relative active:scale-95 transition-transform"
+                        onClick={(e) => {
+                          if (siswi['FOTO URL'] && siswi['FOTO URL'].trim() !== '' && siswi['FOTO URL'] !== '-') {
+                            e.stopPropagation();
+                            setFullScreenImage(siswi['FOTO URL']);
+                          }
+                        }}
+                      >
                         {siswi['FOTO URL'] && siswi['FOTO URL'].trim() !== '' && siswi['FOTO URL'] !== '-' ? (
                           <img
                             src={formatImageUrl(siswi['FOTO URL'])}
@@ -1206,13 +1428,16 @@ function App() {
             {activeTab === 'pengajar' && (
               <h2 className="text-xl font-bold text-blue-100 text-center mt-1 tracking-wide">Data Pengajar</h2>
             )}
+            {activeTab === 'pelajaran' && (
+              <h2 className="text-xl font-bold text-blue-100 text-center mt-1 tracking-wide">Mata Pelajaran</h2>
+            )}
           </div>
         </div>
 
         {activeTab === 'beranda' ? (
         <>
           {/* Search Bar */}
-        <div className="px-6 -mt-6 sticky top-4 z-10">
+        <div className="px-6 -mt-6 sticky top-4 z-30">
           <div className="bg-white rounded-2xl shadow-lg flex flex-col border border-gray-100 overflow-hidden">
             <div className="flex items-center px-4 py-3 relative">
               <Search className="text-gray-400 w-5 h-5 mr-3 flex-shrink-0" />
@@ -1367,13 +1592,15 @@ function App() {
         
         </>
         ) : activeTab === 'bagian' ? (
-          <StatistikBagian data={allData} onSelectStudent={setSelectedStudent} />
+          <StatistikBagian data={allData} onSelectStudent={setSelectedStudent} onImageClick={setFullScreenImage} />
         ) : activeTab === 'kategori' ? (
-          <StatistikKategori data={allData} onSelectStudent={setSelectedStudent} />
+          <StatistikKategori data={allData} onSelectStudent={setSelectedStudent} onImageClick={setFullScreenImage} />
         ) : activeTab === 'pengajar' ? (
-          <DataPengajar data={pengajarData} />
+          <DataPengajar data={pengajarData} onImageClick={setFullScreenImage} />
+        ) : activeTab === 'pelajaran' ? (
+          <DataPelajaran data={pelajaranData} />
         ) : (
-        <StatistikDaerah data={allData} onSelectStudent={setSelectedStudent} />
+        <StatistikDaerah data={allData} onSelectStudent={setSelectedStudent} onImageClick={setFullScreenImage} />
       )}
       </div>
 
@@ -1396,8 +1623,8 @@ function App() {
         {/* Bottom Navigation */}
       {!selectedStudent && (
         <div className="fixed bottom-6 left-0 right-0 z-40 px-6 flex justify-center pointer-events-none pb-safe">
-          <nav className="w-full max-w-[420px] bg-white/90 backdrop-blur-xl border border-white/60 shadow-[0_12px_40px_rgba(0,0,0,0.12)] rounded-full pointer-events-auto overflow-hidden">
-            <div className="h-[70px] flex items-center justify-around px-4">
+          <nav className="w-full w-[95%] max-w-md bg-white/90 backdrop-blur-xl border border-white/60 shadow-[0_12px_40px_rgba(0,0,0,0.12)] rounded-full pointer-events-auto overflow-hidden">
+            <div className="h-[70px] flex items-center justify-between px-3">
             <button 
               onClick={() => setActiveTab('beranda')}
               className={`outline-none focus:outline-none flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${activeTab === 'beranda' ? 'text-mazeeda-blue translate-y-[-2px]' : 'text-gray-400 hover:text-gray-600'}`}
@@ -1434,8 +1661,16 @@ function App() {
               onClick={() => setActiveTab('pengajar')}
               className={`outline-none focus:outline-none flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${activeTab === 'pengajar' ? 'text-mazeeda-blue translate-y-[-2px]' : 'text-gray-400 hover:text-gray-600'}`}
             >
-              <BookOpen className={`w-6 h-6 transition-all duration-200 ${activeTab === 'pengajar' ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
+              <GraduationCap className={`w-6 h-6 transition-all duration-200 ${activeTab === 'pengajar' ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
               <span className={`text-[10px] mt-1 transition-all duration-200 ${activeTab === 'pengajar' ? 'font-bold' : 'font-medium'}`}>Pengajar</span>
+            </button>
+            
+            <button 
+              onClick={() => setActiveTab('pelajaran')}
+              className={`outline-none focus:outline-none flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${activeTab === 'pelajaran' ? 'text-mazeeda-blue translate-y-[-2px]' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <Calendar className={`w-6 h-6 transition-all duration-200 ${activeTab === 'pelajaran' ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
+              <span className={`text-[10px] mt-1 transition-all duration-200 ${activeTab === 'pelajaran' ? 'font-bold' : 'font-medium'}`}>Pelajaran</span>
             </button>
           </div>
         </nav>
@@ -1493,7 +1728,9 @@ function App() {
           </div>
         </div>
       )}
-    </div>
+      
+      {fullScreenImage && <ImageViewer src={fullScreenImage} onClose={() => setFullScreenImage(null)} />}
+          </div>
   );
 }
 
