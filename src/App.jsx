@@ -1388,10 +1388,10 @@ function App() {
   if (isInitialLoading) {
     return (
       <div className="min-h-screen bg-mazeeda-navy flex flex-col items-center justify-center p-6 text-white font-sans">
-        <div className="w-32 h-32 bg-transparent rounded-[32px] shadow-[0_15px_40px_rgba(0,0,0,0.4)] mb-8 relative overflow-hidden">
-            <div className="absolute inset-0 bg-white/20 rounded-[32px] animate-ping opacity-20"></div>
-            <img src={appLogo} alt="Mazeeda Logo" className="w-full h-full object-cover relative z-10 scale-110" />
-          </div>
+        <div className="w-28 h-28 bg-white rounded-3xl p-1.5 shadow-[0_10px_40px_rgba(0,0,0,0.3)] mb-8 relative">
+          <div className="absolute inset-0 bg-white rounded-3xl animate-ping opacity-20"></div>
+          <img src={appLogo} alt="Mazeeda Logo" className="w-full h-full object-contain relative z-10" />
+        </div>
         <div className="flex flex-col items-center gap-5">
           <div className="w-10 h-10 rounded-full border-4 border-white/20 border-t-white animate-spin"></div>
           <div className="text-center">
@@ -1410,8 +1410,8 @@ function App() {
         {/* Header */}
         <div className={`bg-mazeeda-blue text-white pt-10 ${activeTab === 'beranda' ? 'pb-12' : 'pb-6'} px-6 rounded-b-[2.5rem] relative shadow-md`}>
           <div className="flex flex-col items-center">
-            <div className="w-24 h-24 bg-transparent backdrop-blur-sm rounded-[24px] flex items-center justify-center mb-4 shadow-xl overflow-hidden">
-                <img src={appLogo} alt="Logo MAZEEDA" className="w-full h-full object-cover scale-110" />
+              <div className="w-20 h-20 bg-white rounded-2xl p-1.5 flex items-center justify-center mb-4 border-2 border-white/60 shadow-inner">
+                <img src={appLogo} alt="Logo MAZEEDA" className="w-full h-full object-contain" />
               </div>
             <h1 className="text-xl font-bold text-center leading-tight mt-2">
               INFORMASI MAZEEDA
@@ -1713,9 +1713,9 @@ function App() {
         <div className="fixed bottom-4 left-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-5 duration-500">
           <div className="max-w-md mx-auto bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-blue-100 p-4 flex items-center justify-between">
             <div className="flex items-center">
-              <div className="w-14 h-14 bg-transparent rounded-xl shadow-sm border border-gray-200 flex items-center justify-center mr-3 overflow-hidden">
-                  <img src={appLogo} alt="Logo" className="w-full h-full object-cover scale-110" />
-                </div>
+              <div className="w-12 h-12 bg-white rounded-xl shadow-inner border border-gray-100 flex items-center justify-center mr-3 p-1">
+                <img src={appLogo} alt="Logo" className="w-full h-full object-contain" />
+              </div>
               <div>
                 <h4 className="font-bold text-gray-800 text-sm leading-tight">Install Mazeeda</h4>
                 <p className="text-xs text-gray-500 mt-0.5">Akses lebih cepat & mudah</p>
