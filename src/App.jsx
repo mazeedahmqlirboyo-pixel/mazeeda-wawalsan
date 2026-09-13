@@ -923,6 +923,7 @@ function App() {
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [activeTab, setActiveTab] = useState('beranda');
   const [selectedStudent, setSelectedStudent] = useState(null);
     const [fullScreenImage, setFullScreenImage] = useState(null);
@@ -1019,17 +1020,35 @@ function App() {
       setStats({ data: statsArray, isLoading: false });
       
             
-    } catch (err) {
-      console.error("Error fetching Google Sheets:", err);
-      setStats({ data: [], isLoading: false });
-    } finally {
-      setIsLoading(false);
-      setIsInitialLoading(false);
-    }
-  };
+      } catch (err) {
+        console.error("Error fetching Google Sheets:", err);
+        setStats({ data: [], isLoading: false });
+      } finally {
+        setIsLoading(false);
+        setLoadingProgress(100);
+        setTimeout(() => {
+          setIsInitialLoading(false);
+        }, 400);
+      }
+    };
 
-    useEffect(() => {
-      fetchAllSheets();
+      useEffect(() => {
+    if (isInitialLoading) {
+      const interval = setInterval(() => {
+        setLoadingProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(interval);
+            return prev;
+          }
+          return prev + Math.random() * 15;
+        });
+      }, 300);
+      return () => clearInterval(interval);
+    }
+  }, [isInitialLoading]);
+
+  useEffect(() => {
+    fetchAllSheets();
 
       if (PENGAJAR_CSV_URL && PENGAJAR_CSV_URL.startsWith("http")) {
         fetch(PENGAJAR_CSV_URL)
@@ -1397,7 +1416,12 @@ function App() {
           <img src={appLogo} alt="Mazeeda Logo" className="w-full h-full object-contain relative z-10" />
         </div>
         <div className="flex flex-col items-center gap-5">
-          <div className="w-10 h-10 rounded-full border-4 border-white/20 border-t-white animate-spin"></div>
+          <div className="w-56 bg-white/20 rounded-full h-1.5 mt-2 overflow-hidden shadow-inner">
+              <div 
+                className="bg-white h-full rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(255,255,255,0.7)]" 
+                style={{ width: `${Math.min(loadingProgress, 100)}%` }}
+              ></div>
+            </div>
           <div className="text-center">
             <h2 className="text-xl font-black tracking-widest mb-2">SINKRONISASI DATA</h2>
             
