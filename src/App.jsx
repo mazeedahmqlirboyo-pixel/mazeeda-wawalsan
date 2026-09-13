@@ -195,7 +195,7 @@ const StatistikDaerah = ({ data, onSelectStudent, onImageClick }) => {
                             onClick={(e) => {
                               if (student['FOTO URL'] && student['FOTO URL'].trim() !== '' && student['FOTO URL'] !== '-') {
                                 e.stopPropagation();
-                                onImageClick(student['FOTO URL']);
+                                onImageClick({ url: student['FOTO URL'], type: 'siswi' });
                               }
                             }}
                           >
@@ -395,7 +395,7 @@ const StatistikBagian = ({ data, onSelectStudent, onImageClick }) => {
                             onClick={(e) => {
                               if (student['FOTO URL'] && student['FOTO URL'].trim() !== '' && student['FOTO URL'] !== '-') {
                                 e.stopPropagation();
-                                onImageClick(student['FOTO URL']);
+                                onImageClick({ url: student['FOTO URL'], type: 'siswi' });
                               }
                             }}
                           >
@@ -597,7 +597,7 @@ const StatistikKategori = ({ data, onSelectStudent, onImageClick }) => {
                             onClick={(e) => {
                               if (student['FOTO URL'] && student['FOTO URL'].trim() !== '' && student['FOTO URL'] !== '-') {
                                 e.stopPropagation();
-                                onImageClick(student['FOTO URL']);
+                                onImageClick({ url: student['FOTO URL'], type: 'siswi' });
                               }
                             }}
                           >
@@ -711,7 +711,7 @@ const DataPengajar = ({ data, onImageClick }) => {
                 onClick={(e) => {
                   if (pengajar['FOTO'] && pengajar['FOTO'].trim() !== '' && pengajar['FOTO'] !== '-') {
                     e.stopPropagation();
-                    onImageClick(pengajar['FOTO']);
+                    onImageClick({ url: pengajar['FOTO'], type: 'pengajar' });
                   }
                 }}
               >
@@ -761,7 +761,7 @@ const DataPengajar = ({ data, onImageClick }) => {
                   onClick={(e) => {
                     e.stopPropagation();
                     if (pengajar['DENAH'] && pengajar['DENAH'].trim() !== '' && pengajar['DENAH'] !== '-') {
-                      onImageClick(pengajar['DENAH']);
+                      onImageClick({ url: pengajar['DENAH'], type: 'denah' });
                     } else {
                       alert('Denah belum tersedia untuk pengajar ini.');
                     }
@@ -865,7 +865,7 @@ const DataPelajaran = ({ data }) => {
 
 
 
-const ImageViewer = ({ src, onClose }) => {
+const ImageViewer = ({ src, type, onClose }) => {
     if (!src) return null;
     return (
       <div 
@@ -882,14 +882,15 @@ const ImageViewer = ({ src, onClose }) => {
         
         <div className="relative max-w-full max-h-[90vh] flex items-center justify-center pointer-events-none">
           <img 
-            src={formatImageUrl(src)} 
-            alt="Protected Content" 
-            className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl animate-zoom-in blur-[3px]"
-            style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none', pointerEvents: 'none' }}
+              src={formatImageUrl(src)} 
+              alt="Protected Content" 
+              className={`max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl animate-zoom-in ${type === 'pengajar' ? 'blur-[3px]' : ''}`}
+              style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none', pointerEvents: type === 'pengajar' ? 'none' : 'auto' }}
             referrerPolicy="no-referrer"
           />
           
-          <div className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-xl opacity-40 mix-blend-overlay z-10">
+          {type === 'pengajar' && (
+            <div className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-xl opacity-40 mix-blend-overlay z-10">
              <div className="w-[150%] h-[150%] flex flex-wrap items-center justify-center gap-4 -rotate-12 transform scale-125 pointer-events-none select-none">
                {Array.from({ length: 30 }).map((_, i) => (
                  <span key={i} className="text-white/80 text-3xl font-black uppercase tracking-[0.3em] drop-shadow-md">
@@ -897,12 +898,15 @@ const ImageViewer = ({ src, onClose }) => {
                  </span>
                ))}
              </div>
-          </div>
+            </div>
+          )}
         </div>
         
-        <div className="absolute bottom-10 text-white/50 text-xs tracking-widest font-bold uppercase z-20 text-center px-4">
-          Dokumen Rahasia Mazeeda
-        </div>
+        {type === 'pengajar' && (
+          <div className="absolute bottom-10 text-white/50 text-xs tracking-widest font-bold uppercase z-20 text-center px-4">
+            Dokumen Rahasia Mazeeda
+          </div>
+        )}
       </div>
     );
   };
@@ -1189,7 +1193,7 @@ function App() {
                         onClick={(e) => {
                           if (siswi['FOTO URL'] && siswi['FOTO URL'].trim() !== '' && siswi['FOTO URL'] !== '-') {
                             e.stopPropagation();
-                            setFullScreenImage(siswi['FOTO URL']);
+                            setFullScreenImage({ url: siswi['FOTO URL'], type: 'siswi' });
                           }
                         }}
                       >
@@ -1729,7 +1733,7 @@ function App() {
         </div>
       )}
       
-      {fullScreenImage && <ImageViewer src={fullScreenImage} onClose={() => setFullScreenImage(null)} />}
+      {fullScreenImage && <ImageViewer src={fullScreenImage.url} type={fullScreenImage.type} onClose={() => setFullScreenImage(null)} />}
           </div>
   );
 }
