@@ -1,0 +1,12 @@
+﻿[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.mazeeda.informasi",
+    "sha256_cert_fingerprints": [
+      "72:A6:BD:D7:BA:AD:75:4C:DE:2B:89:59:A7:CD:BC:1B:2C:56:37:79:D6:06:9D:F9:26:56:E4:5B:A3:BA:A4:CE",
+      "8E:06:75:B7:36:85:EC:E6:8D:87:52:93:AB:7E:07:E6:3F:23:24:A0:D5:6F:0A:BC:3C:D1:5A:32:5E:6F:6E:C9",
+      "A0:F5:E7:15:7D:9F:2B:CC:59:3A:C8:13:93:C1:50:06:21:41:E7:36:ED:A5:AC:3F:7D:72:0A:D5:E2:DB:3F:91"
+    ]
+  }
+}]
