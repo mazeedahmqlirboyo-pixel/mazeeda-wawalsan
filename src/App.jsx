@@ -191,7 +191,7 @@ const StatistikDaerah = ({ data, onSelectStudent, onImageClick }) => {
                       return (
                         <div key={i} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
                           <div 
-                            className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative cursor-pointer active:scale-95 transition-transform"
+                            className="w-12 h-12 rounded-full bg-blue-600 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative cursor-pointer active:scale-95 transition-transform"
                             onClick={(e) => {
                               if (student['FOTO URL'] && student['FOTO URL'].trim() !== '' && student['FOTO URL'] !== '-') {
                                 e.stopPropagation();
@@ -391,7 +391,7 @@ const StatistikBagian = ({ data, onSelectStudent, onImageClick }) => {
                       return (
                         <div key={i} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
                           <div 
-                            className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative cursor-pointer active:scale-95 transition-transform"
+                            className="w-12 h-12 rounded-full bg-blue-600 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative cursor-pointer active:scale-95 transition-transform"
                             onClick={(e) => {
                               if (student['FOTO URL'] && student['FOTO URL'].trim() !== '' && student['FOTO URL'] !== '-') {
                                 e.stopPropagation();
@@ -593,7 +593,7 @@ const StatistikKategori = ({ data, onSelectStudent, onImageClick }) => {
                       return (
                         <div key={i} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
                           <div 
-                            className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative cursor-pointer active:scale-95 transition-transform"
+                            className="w-12 h-12 rounded-full bg-blue-600 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative cursor-pointer active:scale-95 transition-transform"
                             onClick={(e) => {
                               if (student['FOTO URL'] && student['FOTO URL'].trim() !== '' && student['FOTO URL'] !== '-') {
                                 e.stopPropagation();
@@ -707,7 +707,7 @@ const DataPengajar = ({ data, onImageClick }) => {
                 className="flex items-center gap-4 py-4 px-6 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
               >
               <div 
-                className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative z-10"
+                className="w-12 h-12 rounded-full bg-blue-600 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative z-10"
                 onClick={(e) => {
                   if (pengajar['FOTO'] && pengajar['FOTO'].trim() !== '' && pengajar['FOTO'] !== '-') {
                     e.stopPropagation();
@@ -1208,7 +1208,7 @@ function App() {
                     {/* Header Card */}
                     <div className="flex items-center gap-4 mb-5">
                       <div 
-                        className="w-16 h-16 rounded-full bg-blue-50 border-2 border-white shadow-sm overflow-hidden flex-shrink-0 flex items-center justify-center ring-2 ring-gray-50 cursor-pointer relative active:scale-95 transition-transform"
+                        className="w-16 h-16 rounded-full bg-blue-600 border-2 border-white shadow-sm overflow-hidden flex-shrink-0 flex items-center justify-center ring-2 ring-gray-50 cursor-pointer relative active:scale-95 transition-transform"
                         onClick={(e) => {
                           if (siswi['FOTO URL'] && siswi['FOTO URL'].trim() !== '' && siswi['FOTO URL'] !== '-') {
                             e.stopPropagation();
@@ -1229,7 +1229,7 @@ function App() {
                             }}
                           />
                         ) : null}
-                        <span className="text-2xl font-bold text-mazeeda-blue" style={{ display: (siswi['FOTO URL'] && siswi['FOTO URL'].trim() !== '' && siswi['FOTO URL'] !== '-') ? 'none' : 'flex' }}>
+                        <span className="text-2xl font-bold text-white" style={{ display: (siswi['FOTO URL'] && siswi['FOTO URL'].trim() !== '' && siswi['FOTO URL'] !== '-') ? 'none' : 'flex' }}>
                           {siswi['NAMA LENGKAP'] ? siswi['NAMA LENGKAP'].charAt(0).toUpperCase() : '?'}
                         </span>
                       </div>
