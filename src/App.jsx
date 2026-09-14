@@ -210,7 +210,7 @@ const StatistikDaerah = ({ data, onSelectStudent, onImageClick }) => {
                                     e.target.style.display = 'none';
                                   }}
                                 />
-                                <div className="w-full h-full flex items-center justify-center bg-gray-50 absolute z-0">
+                                <div className="w-full h-full flex items-center justify-center bg-transparent absolute z-0">
                                   <User className="w-5 h-5 text-gray-400" />
                                 </div>
                               </>
@@ -410,7 +410,7 @@ const StatistikBagian = ({ data, onSelectStudent, onImageClick }) => {
                                     e.target.style.display = 'none';
                                   }}
                                 />
-                                <div className="w-full h-full flex items-center justify-center bg-gray-50 absolute z-0">
+                                <div className="w-full h-full flex items-center justify-center bg-transparent absolute z-0">
                                   <User className="w-5 h-5 text-gray-400" />
                                 </div>
                               </>
@@ -612,7 +612,7 @@ const StatistikKategori = ({ data, onSelectStudent, onImageClick }) => {
                                     e.target.style.display = 'none';
                                   }}
                                 />
-                                <div className="w-full h-full flex items-center justify-center bg-gray-50 absolute z-0">
+                                <div className="w-full h-full flex items-center justify-center bg-transparent absolute z-0">
                                   <User className="w-5 h-5 text-gray-400" />
                                 </div>
                               </>
@@ -724,7 +724,7 @@ const DataPengajar = ({ data, onImageClick }) => {
                       referrerPolicy="no-referrer"
                       onError={(e) => { e.target.style.display = 'none'; }}
                     />
-                    <div className="w-full h-full flex items-center justify-center bg-gray-50 absolute z-0">
+                    <div className="w-full h-full flex items-center justify-center bg-transparent absolute z-0">
                       <User className="w-5 h-5 text-gray-300" />
                     </div>
                   </>
